@@ -32,12 +32,16 @@ export default function App() {
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
           <Link
-            to={authenticated ? "/dashboard" : "/login"}
-            className="flex items-center gap-2 font-semibold"
-          >
-            <span className="text-xl">🌱</span>
-            <span className="tracking-wide">SimuVidaTech</span>
-          </Link>
+  to={authenticated ? "/dashboard" : "/login"}
+  className="flex items-center gap-3 font-semibold"
+>
+  <span className="text-2xl">🌱</span>
+  <span className="text-lg tracking-wider">
+    SimuVidaTech
+  </span>
+</Link>
+
+
 
           {/* ACCIONES NAV */}
           <div className="flex items-center gap-2">
