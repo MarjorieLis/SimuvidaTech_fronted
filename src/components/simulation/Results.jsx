@@ -3,6 +3,8 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function Results() {
   const [device, setDevice] = useState(null);
@@ -93,6 +95,100 @@ export default function Results() {
     }
   };
 
+  // ✅ Función para generar y descargar el PDF
+  const handleDownloadPDF = async () => {
+    if (!device) return;
+
+    const usoDecision = decisions.find(d => d.stage === 1)?.decision || "No registrada";
+    const finDecision = decisions.find(d => d.stage === 2)?.decision || "No registrada";
+
+    // Crear contenedor temporal
+    const pdfContent = document.createElement('div');
+    pdfContent.style.width = '800px';
+    pdfContent.style.padding = '40px';
+    pdfContent.style.fontFamily = 'Arial, sans-serif';
+    pdfContent.style.backgroundColor = 'white';
+    pdfContent.style.color = 'black';
+    pdfContent.style.fontSize = '14px';
+
+    pdfContent.innerHTML = `
+      <div style="text-align: center; margin-bottom: 30px;">
+        <h1 style="color: #047857; font-size: 28px;">SimuVidaTech</h1>
+        <p style="font-size: 16px; color: #1f2937;">Informe de Impacto Ambiental</p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Dispositivo</h2>
+        <p><strong>Tipo:</strong> ${device.type}</p>
+        <p><strong>Modelo:</strong> ${device.model}</p>
+        <p><strong>Año:</strong> ${device.year || 'No especificado'}</p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Decisiones Tomadas</h2>
+        <p><strong>Uso:</strong> ${usoDecision}</p>
+        <p><strong>Fin de vida:</strong> ${finDecision}</p>
+      </div>
+
+      <div style="margin-bottom: 20px;">
+        <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Impacto Ambiental</h2>
+        <p><strong>CO₂:</strong> ${impact.CO2} kg</p>
+        <p><strong>Agua:</strong> ${impact.agua} L</p>
+        <p><strong>Residuos:</strong> ${impact.residuos} kg</p>
+        <p><strong>Puntuación ecológica:</strong> ${impact.score}/100</p>
+      </div>
+
+      <div>
+        <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Recomendaciones</h2>
+        <ul style="padding-left: 20px;">
+          ${getRecommendations().map(rec => `<li>${rec}</li>`).join('')}
+        </ul>
+      </div>
+
+      <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #6b7280;">
+        © 2026 SimuVidaTech — Educar para proteger nuestro planeta.
+      </div>
+    `;
+
+    document.body.appendChild(pdfContent);
+
+    try {
+      const canvas = await html2canvas(pdfContent, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff'
+      });
+
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgWidth = 210;
+      const pageHeight = 297;
+      const imgHeight = (canvas.height * imgWidth) / canvas.width;
+      let heightLeft = imgHeight;
+      let position = 0;
+
+      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+      heightLeft -= pageHeight;
+
+      while (heightLeft >= 0) {
+        position = heightLeft - imgHeight;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+        heightLeft -= pageHeight;
+      }
+
+      // Nombre de archivo limpio
+      const cleanModel = device.model.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      pdf.save(`simuvidatech_${device.type}_${cleanModel}.pdf`);
+
+    } catch (err) {
+      console.error('Error al generar PDF:', err);
+      alert('❌ Error al generar el PDF. Intenta nuevamente.');
+    } finally {
+      document.body.removeChild(pdfContent);
+    }
+  };
+
   if (!device) return (
     <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
       <div className="text-center">
@@ -165,11 +261,11 @@ export default function Results() {
               </ul>
             </div>
 
-            {/* Botón PDF (futuro) */}
+            {/* ✅ Botón PDF funcional */}
             <div className="mt-8 pt-6 border-t border-white/10">
               <button
-                onClick={() => alert("Próximamente: Descarga de PDF")}
-                className="w-full rounded-xl bg-white/5 border border-white/10 py-3 text-white/70 hover:bg-white/10 hover:text-white transition"
+                onClick={handleDownloadPDF}
+                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition"
               >
                 📄 Descargar informe completo
               </button>
@@ -180,7 +276,7 @@ export default function Results() {
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <h2 className="text-2xl font-semibold mb-6">📈 Impacto ambiental final</h2>
             
-            <div className="h-64">
+            <div className="h-64 min-h-[16rem]"> {/* ✅ Evita error de Recharts */}
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
                   { name: 'CO₂', value: impact.CO2 },
