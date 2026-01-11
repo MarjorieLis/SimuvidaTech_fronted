@@ -18,7 +18,7 @@ import Decisions from './components/simulation/Decisions';
 import Home from './components/home/Home';
 import DemoSimulation from './components/demo/DemoSimulation';
 import Results from './components/simulation/Results';
-
+import MyDevices from './components/devices/MyDevices';
 
 export default function App() {
   const location = useLocation();
@@ -154,6 +154,7 @@ export default function App() {
             />
             <Route path="/demo/:type" element={<DemoSimulation />} />
             <Route path="/results/:id" element={<Results />} />
+            <Route path="/my-devices" element={<MyDevices />} />
           </Routes>
         </div>
       </main>

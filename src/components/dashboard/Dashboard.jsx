@@ -142,6 +142,16 @@ export default function Dashboard() {
           />
         </div>
 
+        {/* ✅ Botón para ver mis dispositivos */}
+        <div className="mt-8 text-center">
+          <button
+            onClick={() => navigate("/my-devices")}
+            className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
+          >
+            👁️ Ver mis dispositivos registrados
+          </button>
+        </div>
+
         {/* Footer interno */}
         <div className="mt-12 text-center text-white/50 text-sm">
           © 2026 SimuVidaTech — Educar para proteger nuestro planeta.

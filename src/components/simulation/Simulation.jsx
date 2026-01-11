@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
-import { getAdjustedImpact } from '../../data/deviceData'; // ✅ Importa la lógica moderna
+import { getAdjustedImpact } from '../../data/deviceData';
 
 export default function Simulation() {
   const [device, setDevice] = useState(null);
@@ -23,10 +23,7 @@ export default function Simulation() {
         }
         const response = await api.get(`/devices/${id}`);
         setDevice(response.data);
-        
-        // ✅ Calcula impacto ajustado por año
-        const impactData = getAdjustedImpact(response.data.type, response.data.year);
-        setImpact(impactData);
+        simulateImpact(response.data);
       } catch (err) {
         console.error('Error al cargar dispositivo:', err);
         setError('No se pudo cargar el dispositivo');
@@ -37,6 +34,27 @@ export default function Simulation() {
     };
     loadDevice();
   }, [id, navigate]);
+
+  // Lógica de simulación
+  const simulateImpact = (device) => {
+    const baseCO2 = device.type === 'telefono' ? 150 : 300;
+    const baseAgua = device.type === 'telefono' ? 100 : 200;
+    const baseResiduos = device.type === 'telefono' ? 10 : 20;
+
+    let CO2 = baseCO2;
+    let agua = baseAgua;
+    let residuos = baseResiduos;
+    let score = 100;
+
+    // Puntuación ecológica
+    const scoreBase = 100 - (CO2 / baseCO2) * 50;
+    setImpact({ CO2, agua, residuos, score: Math.round(scoreBase) });
+  };
+
+  const handleSimulate = async () => {
+    // Aquí irá la lógica de decisiones del usuario
+    alert('✅ Simulación completada. ¡Mira tu impacto!');
+  };
 
   if (loading) return (
     <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
@@ -84,12 +102,21 @@ export default function Simulation() {
             </p>
           </div>
 
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
-          >
-            ← Volver al Dashboard
-          </button>
+          <div className="flex gap-2">
+            <button
+              onClick={() => navigate('/dashboard')}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
+            >
+              ← Volver al Dashboard
+            </button>
+            {/* ✅ Botón nuevo: Volver a mis dispositivos */}
+            <button
+              onClick={() => navigate('/my-devices')}
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm bg-emerald-500/10 text-emerald-200 border border-emerald-400/20 hover:bg-emerald-500/20 hover:text-emerald-100 transition"
+            >
+              ← Mis dispositivos
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -99,7 +126,7 @@ export default function Simulation() {
             
             <div className="space-y-6">
               <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl p-4">
-                <div className="flex justify-between items-center">
+                <div className="flex justify-between">
                   <span className="text-emerald-200">Puntuación ecológica</span>
                   <span className="text-2xl font-bold text-emerald-300">{impact.score}<span className="text-lg">/100</span></span>
                 </div>
