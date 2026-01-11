@@ -35,20 +35,12 @@ export default function Simulation() {
     loadDevice();
   }, [id, navigate]);
 
-  // Lógica de simulación
+  // ✅ LÓGICA CORREGIDA: Usa getAdjustedImpact con manejo seguro de year
   const simulateImpact = (device) => {
-    const baseCO2 = device.type === 'telefono' ? 150 : 300;
-    const baseAgua = device.type === 'telefono' ? 100 : 200;
-    const baseResiduos = device.type === 'telefono' ? 10 : 20;
-
-    let CO2 = baseCO2;
-    let agua = baseAgua;
-    let residuos = baseResiduos;
-    let score = 100;
-
-    // Puntuación ecológica
-    const scoreBase = 100 - (CO2 / baseCO2) * 50;
-    setImpact({ CO2, agua, residuos, score: Math.round(scoreBase) });
+    // Asegúrate de que year sea un número o null
+    const year = device.year ? parseInt(device.year, 10) : null;
+    const impactData = getAdjustedImpact(device.type, year);
+    setImpact(impactData);
   };
 
   const handleSimulate = async () => {
@@ -167,7 +159,7 @@ export default function Simulation() {
           {/* Gráfico */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <h2 className="text-2xl font-semibold mb-6">📈 Impacto por categoría</h2>
-            <div className="h-64">
+            <div className="h-64 min-h-[16rem]"> {/* ✅ Añadido min-h para evitar error Recharts */}
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
                   { name: 'CO₂', value: impact.CO2 },

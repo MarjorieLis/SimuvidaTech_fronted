@@ -34,13 +34,21 @@ export default function UploadLaptop() {
         materials,
       });
 
+      // ✅ Validación adicional
+      if (!response.data || !response.data.id) {
+        throw new Error("El servidor no devolvió un ID válido");
+      }
+
       localStorage.setItem("currentDeviceId", response.data.id);
-      navigate("/simulation");
+      // ✅ ¡CORREGIDO! Ahora incluye el ID
+      navigate(`/simulation/${response.data.id}`);
     } catch (err) {
       console.error("Error al registrar laptop:", err);
       setLoading(false);
       setErrorMsg(
-        err.response?.data?.error || "No se pudo registrar la laptop. Intenta nuevamente."
+        err.response?.data?.error || 
+        err.message || 
+        "No se pudo registrar la laptop. Intenta nuevamente."
       );
     }
   };
