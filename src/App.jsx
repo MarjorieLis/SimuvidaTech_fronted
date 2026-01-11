@@ -11,6 +11,8 @@ import Login from "./components/auth/Login";
 import Register from "./components/auth/Register";
 import Dashboard from "./components/dashboard/Dashboard";
 import { isAuthenticated, getUser, logout } from "./utils/auth";
+import UploadPhone from './components/upload/UploadPhone';
+import UploadLaptop from './components/upload/UploadLaptop';
 
 export default function App() {
   const location = useLocation();
@@ -125,6 +127,9 @@ export default function App() {
                 authenticated ? <Dashboard /> : <Navigate to="/login" replace />
               }
             />
+
+            <Route path="/upload/telefono" element={<UploadPhone />} />
+            <Route path="/upload/laptop" element={<UploadLaptop />} />
           </Routes>
         </div>
       </main>
