@@ -17,6 +17,8 @@ import Simulation from './components/simulation/Simulation';
 import Decisions from './components/simulation/Decisions';
 import Home from './components/home/Home';
 import DemoSimulation from './components/demo/DemoSimulation';
+import Results from './components/simulation/Results';
+
 
 export default function App() {
   const location = useLocation();
@@ -151,6 +153,7 @@ export default function App() {
               element={authenticated ? <Decisions /> : <Navigate to="/login" replace />} 
             />
             <Route path="/demo/:type" element={<DemoSimulation />} />
+            <Route path="/results/:id" element={<Results />} />
           </Routes>
         </div>
       </main>

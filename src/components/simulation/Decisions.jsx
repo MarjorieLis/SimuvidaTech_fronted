@@ -6,7 +6,7 @@ import api from '../../services/api';
 import { getAdjustedImpact } from '../../data/deviceData';
 
 export default function Decisions() {
-  const [stage, setStage] = useState(1);
+  const [stage, setStage] = useState(1); // 1 a 5
   const [decisionUso, setDecisionUso] = useState('3+ años');
   const [decisionFin, setDecisionFin] = useState('reciclar');
   const [device, setDevice] = useState(null);
@@ -27,7 +27,7 @@ export default function Decisions() {
     loadDevice();
   }, [id, navigate]);
 
-  // ✅ Calcula el impacto SIN usar useEffect (usa useMemo)
+  // Calcular impacto en tiempo real
   const impact = useMemo(() => {
     if (!device) return { CO2: 0, agua: 0, residuos: 0, score: 0 };
 
@@ -56,27 +56,49 @@ export default function Decisions() {
       residuos: Math.round(residuos),
       score: Math.round(score)
     };
-  }, [device, decisionUso, decisionFin]); // ✅ Dependencias seguras
+  }, [device, decisionUso, decisionFin]);
 
   const handleNext = async () => {
-    try {
-      const decision = stage === 1 ? decisionUso : decisionFin;
-      await api.post(`/devices/${id}/decisions`, { stage, decision });
-
-      if (stage === 1) {
-        setStage(2);
-      } else {
-        navigate(`/results/${id}`);
+    if (stage === 3 || stage === 5) {
+      // Guardar decisión solo en etapas interactivas
+      const decision = stage === 3 ? decisionUso : decisionFin;
+      try {
+        await api.post(`/devices/${id}/decisions`, {
+          stage: stage === 3 ? 1 : 2, // Mapeo: etapa 3 → stage 1, etapa 5 → stage 2
+          decision
+        });
+      } catch (err) {
+        console.error('Error al guardar decisión:', err);
+        alert('❌ No se pudo guardar tu decisión.');
+        return;
       }
-    } catch (err) {
-      console.error('Error al guardar decisión:', err);
-      alert('❌ No se pudo guardar tu decisión. Intenta nuevamente.');
+    }
+
+    if (stage < 5) {
+      setStage(stage + 1);
+    } else {
+      navigate(`/results/${id}`);
     }
   };
 
   const stages = [
     {
-      title: "Etapa 1: Uso",
+      id: 1,
+      title: "1. Extracción",
+      description: device?.type === 'telefono' 
+        ? "50 kg de minerales extraídos (litio, cobalto, cobre)"
+        : "200 kg de minerales extraídos (aluminio, plástico, circuitos)"
+    },
+    {
+      id: 2,
+      title: "2. Fabricación",
+      description: device?.type === 'telefono'
+        ? "80 L de agua usados en fábrica"
+        : "300 L de agua usados en fábrica"
+    },
+    {
+      id: 3,
+      title: "3. Uso",
       description: "¿Cuánto tiempo usaste o planeas usar este dispositivo?",
       options: [
         { value: "1 año", label: "1 año" },
@@ -85,21 +107,29 @@ export default function Decisions() {
       ]
     },
     {
-      title: "Etapa 2: Fin de vida",
+      id: 4,
+      title: "4. Transporte",
+      description: device?.type === 'telefono'
+        ? "12,000 km de transporte global"
+        : "15,000 km de transporte global"
+    },
+    {
+      id: 5,
+      title: "5. Fin de vida",
       description: "¿Qué harás cuando ya no lo uses?",
       options: [
-        { value: "reparar", label: "Repararlo" },
-        { value: "reciclar", label: "Reciclarlo" },
-        { value: "desechar", label: "Desecharlo" },
+        { value: "desechar", label: "Desechar" },
+        { value: "reparar", label: "Reparar" },
+        { value: "reciclar", label: "Reciclar" },
       ]
     }
   ];
 
-  const currentStage = stages[stage - 1];
+  const current = stages[stage - 1];
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo */}
+      {/* Fondo premium */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -113,10 +143,10 @@ export default function Decisions() {
           <div>
             <p className="text-sm text-emerald-200/90 font-medium">Simulación ambiental</p>
             <h1 className="mt-1 text-3xl md:text-4xl font-semibold flex items-center gap-3">
-              <span className="text-2xl">🌍</span> Decisiones del ciclo de vida
+              <span className="text-2xl">🌍</span> Ciclo de vida
             </h1>
             <p className="mt-2 text-white/65 max-w-2xl">
-              Tu dispositivo está listo para la simulación. Toma decisiones en cada etapa.
+              Tu {device?.type} <strong>{device?.model}</strong> en sus 5 etapas.
             </p>
           </div>
 
@@ -129,49 +159,66 @@ export default function Decisions() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Panel de decisiones */}
+          {/* Panel de etapas */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
-            <h2 className="text-2xl font-semibold mb-6">{currentStage.title}</h2>
-            <p className="mb-6 text-white/60">{currentStage.description}</p>
-
-            <div className="space-y-3">
-              {currentStage.options.map((option) => (
-                <button
-                  key={option.value}
-                  onClick={() => {
-                    if (stage === 1) setDecisionUso(option.value);
-                    else setDecisionFin(option.value);
-                  }}
-                  className={`w-full text-left p-4 rounded-xl transition ${
-                    (stage === 1 && decisionUso === option.value) ||
-                    (stage === 2 && decisionFin === option.value)
-                      ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30"
-                      : "bg-white/5 border border-white/10 text-white/75 hover:bg-white/10 hover:text-white"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
+            <div className="flex items-center justify-between mb-6">
+              <h2 className="text-2xl font-semibold">{current.title}</h2>
+              <span className="px-3 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-200 border border-emerald-400/20">
+                Etapa {stage} de 5
+              </span>
             </div>
 
-            <div className="mt-8 flex gap-3">
+            <p className="mb-6 text-white/60">{current.description}</p>
+
+            {/* Opciones solo en etapas interactivas */}
+            {current.options && (
+              <div className="space-y-3 mt-4">
+                {current.options.map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => {
+                      if (stage === 3) setDecisionUso(opt.value);
+                      else if (stage === 5) setDecisionFin(opt.value);
+                    }}
+                    className={`w-full text-left p-3 rounded-xl transition ${
+                      (stage === 3 && decisionUso === opt.value) ||
+                      (stage === 5 && decisionFin === opt.value)
+                        ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30"
+                        : "bg-white/5 border border-white/10 text-white/75 hover:bg-white/10 hover:text-white"
+                    }`}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
+            )}
+
+            {/* Navegación */}
+            <div className="mt-8 flex justify-between">
+              <button
+                onClick={() => setStage(prev => Math.max(1, prev - 1))}
+                disabled={stage === 1}
+                className="px-4 py-2 rounded-lg text-white/70 disabled:opacity-30"
+              >
+                ← Anterior
+              </button>
               <button
                 onClick={handleNext}
                 disabled={
-                  (stage === 1 && !decisionUso) ||
-                  (stage === 2 && !decisionFin)
+                  (stage === 3 && !decisionUso) ||
+                  (stage === 5 && !decisionFin)
                 }
-                className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-neutral-950 rounded-lg font-medium"
               >
-                {stage === 1 ? "Siguiente →" : "Ver resultados →"}
+                {stage < 5 ? "Siguiente →" : "Ver resultados"}
               </button>
             </div>
           </div>
 
-          {/* Gráfico - ✅ Asegura tamaño mínimo */}
+          {/* Gráfico de impacto */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <h2 className="text-2xl font-semibold mb-6">📊 Impacto actual</h2>
-            <div className="h-64 min-h-[16rem]"> {/* ✅ min-h evita height=-1 */}
+            <div className="h-64 min-h-[16rem]">
               {impact.score > 0 ? (
                 <>
                   <div className="mb-4">
@@ -205,7 +252,7 @@ export default function Decisions() {
                 </>
               ) : (
                 <div className="flex items-center justify-center h-full text-white/60">
-                  Cargando impacto...
+                  Cargando...
                 </div>
               )}
             </div>
