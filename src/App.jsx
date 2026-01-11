@@ -13,6 +13,7 @@ import Dashboard from "./components/dashboard/Dashboard";
 import { isAuthenticated, getUser, logout } from "./utils/auth";
 import UploadPhone from './components/upload/UploadPhone';
 import UploadLaptop from './components/upload/UploadLaptop';
+import Simulation from './components/simulation/Simulation';
 
 export default function App() {
   const location = useLocation();
@@ -130,7 +131,9 @@ export default function App() {
 
             <Route path="/upload/telefono" element={<UploadPhone />} />
             <Route path="/upload/laptop" element={<UploadLaptop />} />
+            <Route path="/simulation/:id" element={<Simulation />} />
           </Routes>
+
         </div>
       </main>
 
