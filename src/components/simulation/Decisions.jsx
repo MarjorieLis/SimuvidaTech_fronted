@@ -1,76 +1,83 @@
 // src/components/simulation/Decisions.jsx
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
+import { getAdjustedImpact } from '../../data/deviceData';
 
 export default function Decisions() {
-  const [stage, setStage] = useState(1); // Etapa actual
-  const [decision, setDecision] = useState('');
-  const [impact, setImpact] = useState({ CO2: 0, agua: 0, residuos: 0, score: 0 });
+  const [stage, setStage] = useState(1);
+  const [decisionUso, setDecisionUso] = useState('3+ años');
+  const [decisionFin, setDecisionFin] = useState('reciclar');
+  const [device, setDevice] = useState(null);
   const navigate = useNavigate();
   const { id } = useParams();
 
-  // Simular impacto según decisión
+  // Cargar dispositivo
   useEffect(() => {
-    if (!decision) return;
+    const loadDevice = async () => {
+      try {
+        const response = await api.get(`/devices/${id}`);
+        setDevice(response.data);
+      } catch (err) {
+        console.error('Error al cargar dispositivo:', err);
+        navigate('/dashboard');
+      }
+    };
+    loadDevice();
+  }, [id, navigate]);
 
-    let baseCO2 = 150;
-    let baseAgua = 100;
-    let baseResiduos = 10;
-    let score = 100;
+  // ✅ Calcula el impacto SIN usar useEffect (usa useMemo)
+  const impact = useMemo(() => {
+    if (!device) return { CO2: 0, agua: 0, residuos: 0, score: 0 };
 
-    switch (stage) {
-      case 1: // Uso
-        if (decision === "1 año") {
-          score = 60;
-        } else if (decision === "2 años") {
-          score = 75;
-        } else if (decision === "3+ años") {
-          score = 90;
-        }
-        break;
-      case 2: // Fin de vida
-        if (decision === "reparar") {
-          score = 85;
-        } else if (decision === "reciclar") {
-          score = 95;
-        } else if (decision === "desechar") {
-          score = 40;
-        }
-        break;
-      case 3: // Impacto final
-        score = 100 - (baseCO2 / 150) * 50;
-        break;
+    const baseImpact = getAdjustedImpact(device.type, device.year);
+    let { CO2, agua, residuos, score } = baseImpact;
+
+    // Ajustar por uso
+    if (decisionUso === "1 año") {
+      CO2 *= 1.2; agua *= 1.2; residuos *= 1.2; score = Math.max(20, score - 20);
+    } else if (decisionUso === "2 años") {
+      CO2 *= 1.1; agua *= 1.1; residuos *= 1.1; score = Math.max(20, score - 10);
     }
 
-    setImpact({
-      CO2: Math.round(baseCO2 * (100 - score) / 50),
-      agua: Math.round(baseAgua * (100 - score) / 50),
-      residuos: Math.round(baseResiduos * (100 - score) / 50),
-      score: Math.round(score)
-    });
+    // Ajustar por fin de vida
+    if (decisionFin === "desechar") {
+      CO2 *= 1.3; agua *= 1.3; residuos *= 1.3; score = Math.max(20, score - 30);
+    } else if (decisionFin === "reparar") {
+      CO2 *= 0.9; agua *= 0.9; residuos *= 0.9; score = Math.min(100, score + 10);
+    } else if (decisionFin === "reciclar") {
+      CO2 *= 0.8; agua *= 0.8; residuos *= 0.8; score = Math.min(100, score + 15);
+    }
 
-  }, [stage, decision]);
+    return {
+      CO2: Math.round(CO2),
+      agua: Math.round(agua),
+      residuos: Math.round(residuos),
+      score: Math.round(score)
+    };
+  }, [device, decisionUso, decisionFin]); // ✅ Dependencias seguras
 
   const handleNext = async () => {
     try {
+      const decision = stage === 1 ? decisionUso : decisionFin;
       await api.post(`/devices/${id}/decisions`, { stage, decision });
-      if (stage < 3) {
-        setStage(stage + 1);
-        setDecision(''); // Reiniciar decisión
+
+      if (stage === 1) {
+        setStage(2);
       } else {
         navigate(`/results/${id}`);
       }
     } catch (err) {
       console.error('Error al guardar decisión:', err);
+      alert('❌ No se pudo guardar tu decisión. Intenta nuevamente.');
     }
   };
 
   const stages = [
     {
       title: "Etapa 1: Uso",
-      description: "¿Cuánto tiempo planeas usar este dispositivo?",
+      description: "¿Cuánto tiempo usaste o planeas usar este dispositivo?",
       options: [
         { value: "1 año", label: "1 año" },
         { value: "2 años", label: "2 años" },
@@ -85,17 +92,14 @@ export default function Decisions() {
         { value: "reciclar", label: "Reciclarlo" },
         { value: "desechar", label: "Desecharlo" },
       ]
-    },
-    {
-      title: "Etapa 3: Impacto final",
-      description: "¡Haz clic para ver el impacto total!",
-      options: []
     }
   ];
 
+  const currentStage = stages[stage - 1];
+
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo premium */}
+      {/* Fondo */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -127,16 +131,20 @@ export default function Decisions() {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Panel de decisiones */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
-            <h2 className="text-2xl font-semibold mb-6">{stages[stage-1].title}</h2>
-            <p className="mb-6 text-white/60">{stages[stage-1].description}</p>
+            <h2 className="text-2xl font-semibold mb-6">{currentStage.title}</h2>
+            <p className="mb-6 text-white/60">{currentStage.description}</p>
 
             <div className="space-y-3">
-              {stages[stage-1].options.map((option) => (
+              {currentStage.options.map((option) => (
                 <button
                   key={option.value}
-                  onClick={() => setDecision(option.value)}
+                  onClick={() => {
+                    if (stage === 1) setDecisionUso(option.value);
+                    else setDecisionFin(option.value);
+                  }}
                   className={`w-full text-left p-4 rounded-xl transition ${
-                    decision === option.value
+                    (stage === 1 && decisionUso === option.value) ||
+                    (stage === 2 && decisionFin === option.value)
                       ? "bg-emerald-500/20 text-emerald-200 border border-emerald-400/30"
                       : "bg-white/5 border border-white/10 text-white/75 hover:bg-white/10 hover:text-white"
                   }`}
@@ -149,18 +157,21 @@ export default function Decisions() {
             <div className="mt-8 flex gap-3">
               <button
                 onClick={handleNext}
-                disabled={!decision}
+                disabled={
+                  (stage === 1 && !decisionUso) ||
+                  (stage === 2 && !decisionFin)
+                }
                 className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {stage < 3 ? "Siguiente →" : "Ver resultados →"}
+                {stage === 1 ? "Siguiente →" : "Ver resultados →"}
               </button>
             </div>
           </div>
 
-          {/* Gráfico de impacto actual */}
+          {/* Gráfico - ✅ Asegura tamaño mínimo */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <h2 className="text-2xl font-semibold mb-6">📊 Impacto actual</h2>
-            <div className="h-64">
+            <div className="h-64 min-h-[16rem]"> {/* ✅ min-h evita height=-1 */}
               {impact.score > 0 ? (
                 <>
                   <div className="mb-4">
@@ -194,7 +205,7 @@ export default function Decisions() {
                 </>
               ) : (
                 <div className="flex items-center justify-center h-full text-white/60">
-                  Carga de uso...
+                  Cargando impacto...
                 </div>
               )}
             </div>

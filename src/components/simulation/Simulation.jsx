@@ -1,8 +1,9 @@
 // src/components/simulation/Simulation.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom'; // ✅ Importa useParams
+import { useNavigate, useParams } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
+import { getAdjustedImpact } from '../../data/deviceData'; // ✅ Importa la lógica moderna
 
 export default function Simulation() {
   const [device, setDevice] = useState(null);
@@ -10,7 +11,7 @@ export default function Simulation() {
   const [error, setError] = useState('');
   const [impact, setImpact] = useState({ CO2: 0, agua: 0, residuos: 0, score: 0 });
   const navigate = useNavigate();
-  const { id } = useParams(); // ✅ Obtén el ID de la URL
+  const { id } = useParams();
 
   // Cargar dispositivo desde backend
   useEffect(() => {
@@ -22,7 +23,10 @@ export default function Simulation() {
         }
         const response = await api.get(`/devices/${id}`);
         setDevice(response.data);
-        simulateImpact(response.data);
+        
+        // ✅ Calcula impacto ajustado por año
+        const impactData = getAdjustedImpact(response.data.type, response.data.year);
+        setImpact(impactData);
       } catch (err) {
         console.error('Error al cargar dispositivo:', err);
         setError('No se pudo cargar el dispositivo');
@@ -32,29 +36,7 @@ export default function Simulation() {
       }
     };
     loadDevice();
-  }, [id, navigate]); // ✅ Dependencia: id
-
-  // Lógica de simulación
-  const simulateImpact = (device) => {
-    const baseCO2 = device.type === 'telefono' ? 150 : 300;
-    const baseAgua = device.type === 'telefono' ? 100 : 200;
-    const baseResiduos = device.type === 'telefono' ? 10 : 20;
-    
-    // Simulación base (puedes personalizar esto)
-    let CO2 = baseCO2;
-    let agua = baseAgua;
-    let residuos = baseResiduos;
-    
-    // Puntuación ecológica
-    const score = 100 - (CO2 / baseCO2) * 50;
-    
-    setImpact({ CO2, agua, residuos, score: Math.round(score) });
-  };
-
-  const handleSimulate = async () => {
-    // Aquí irá la lógica de decisiones del usuario
-    alert('✅ Simulación completada. ¡Mira tu impacto!');
-  };
+  }, [id, navigate]);
 
   if (loading) return (
     <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
@@ -147,11 +129,11 @@ export default function Simulation() {
 
             <div className="mt-8 flex gap-3">
               <button
-  onClick={() => navigate(`/simulation/${id}/decisions`)}
-  className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition"
->
-  Simular decisiones →
-</button>
+                onClick={() => navigate(`/simulation/${id}/decisions`)}
+                className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition"
+              >
+                Simular decisiones →
+              </button>
             </div>
           </div>
 
