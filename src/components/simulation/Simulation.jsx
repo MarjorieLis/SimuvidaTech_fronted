@@ -147,11 +147,11 @@ export default function Simulation() {
 
             <div className="mt-8 flex gap-3">
               <button
-                onClick={handleSimulate}
-                className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition"
-              >
-                Simular decisiones →
-              </button>
+  onClick={() => navigate(`/simulation/${id}/decisions`)}
+  className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition"
+>
+  Simular decisiones →
+</button>
             </div>
           </div>
 

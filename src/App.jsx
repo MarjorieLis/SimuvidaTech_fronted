@@ -14,6 +14,8 @@ import { isAuthenticated, getUser, logout } from "./utils/auth";
 import UploadPhone from './components/upload/UploadPhone';
 import UploadLaptop from './components/upload/UploadLaptop';
 import Simulation from './components/simulation/Simulation';
+import Decisions from './components/simulation/Decisions';
+import Home from './components/home/Home';
 
 export default function App() {
   const location = useLocation();
@@ -34,17 +36,16 @@ export default function App() {
       {/* NAV */}
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
+          {/* ✅ LOGO SIEMPRE REDIRIGE A / */}
           <Link
-  to={authenticated ? "/dashboard" : "/login"}
-  className="flex items-center gap-3 font-semibold"
->
-  <span className="text-2xl">🌱</span>
-  <span className="text-lg tracking-wider">
-    SimuVidaTech
-  </span>
-</Link>
-
-
+            to="/"
+            className="flex items-center gap-3 font-semibold"
+          >
+            <span className="text-2xl">🌱</span>
+            <span className="text-lg tracking-wider">
+              SimuVidaTech
+            </span>
+          </Link>
 
           {/* ACCIONES NAV */}
           <div className="flex items-center gap-2">
@@ -106,8 +107,10 @@ export default function App() {
 
         <div className="relative max-w-6xl mx-auto px-4 py-10">
           <Routes>
-            <Route path="/" element={<Navigate to="/login" replace />} />
+            {/* ✅ Página de inicio pública */}
+            <Route path="/" element={<Home />} />
 
+            {/* Rutas protegidas */}
             <Route
               path="/login"
               element={
@@ -129,11 +132,24 @@ export default function App() {
               }
             />
 
-            <Route path="/upload/telefono" element={<UploadPhone />} />
-            <Route path="/upload/laptop" element={<UploadLaptop />} />
-            <Route path="/simulation/:id" element={<Simulation />} />
+            {/* Rutas de dispositivo (requieren auth, pero no están protegidas explícitamente aquí) */}
+            <Route 
+              path="/upload/telefono" 
+              element={authenticated ? <UploadPhone /> : <Navigate to="/login" replace />} 
+            />
+            <Route 
+              path="/upload/laptop" 
+              element={authenticated ? <UploadLaptop /> : <Navigate to="/login" replace />} 
+            />
+            <Route 
+              path="/simulation/:id" 
+              element={authenticated ? <Simulation /> : <Navigate to="/login" replace />} 
+            />
+            <Route 
+              path="/simulation/:id/decisions" 
+              element={authenticated ? <Decisions /> : <Navigate to="/login" replace />} 
+            />
           </Routes>
-
         </div>
       </main>
 
