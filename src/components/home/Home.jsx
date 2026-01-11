@@ -7,20 +7,16 @@ export default function Home() {
   const authenticated = isAuthenticated();
 
   const handleExplore = (type) => {
+    // ✅ Siempre redirige a la simulación DEMO (pública)
+    navigate(`/demo/${type}`);
+  };
+
+  const handleUpload = (type) => {
+    // Solo usuarios logueados pueden subir su dispositivo
     if (authenticated) {
-      // Si está logueado, va directo a subir dispositivo
       navigate(`/upload/${type}`);
     } else {
-      // Si no está logueado, muestra mensaje o redirige a login
-      const confirmed = window.confirm(
-        `¿Deseas subir tu propio ${type === 'telefono' ? 'teléfono' : 'laptop'}? Necesitas iniciar sesión.`
-      );
-      if (confirmed) {
-        navigate('/login');
-      } else {
-        // Opcional: en el futuro, aquí iría una simulación demo
-        alert('Próximamente: Simulación demo sin registro');
-      }
+      navigate('/login');
     }
   };
 
@@ -46,49 +42,71 @@ export default function Home() {
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-2xl mx-auto">
-            {/* Botón Teléfonos */}
-            <button
-              onClick={() => handleExplore('telefono')}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900/40 to-cyan-900/40 
-                border border-emerald-500/30 p-6 text-left hover:from-emerald-800/60 hover:to-cyan-800/60 
-                transition-all duration-300"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl">📱</span>
-                <h2 className="text-2xl font-semibold">Explorar teléfonos</h2>
-              </div>
-              <p className="text-white/70 text-sm">
-                Simula el ciclo de vida de tu teléfono y reduce su huella ecológica.
-              </p>
-              <div className="absolute -bottom-1 -right-1 w-16 h-16 rounded-full bg-emerald-500/20 blur-xl group-hover:w-24 group-hover:h-24 transition-all" />
-            </button>
+            {/* Card Teléfonos */}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleExplore('telefono')}
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900/40 to-cyan-900/40 
+                  border border-emerald-500/30 p-6 text-left hover:from-emerald-800/60 hover:to-cyan-800/60 
+                  transition-all duration-300"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">📱</span>
+                  <h2 className="text-2xl font-semibold">Explorar teléfonos</h2>
+                </div>
+                <p className="text-white/70 text-sm">
+                  Simulación demo: ciclo de vida y decisiones ecológicas.
+                </p>
+                <div className="absolute -bottom-1 -right-1 w-16 h-16 rounded-full bg-emerald-500/20 blur-xl group-hover:w-24 group-hover:h-24 transition-all" />
+              </button>
 
-            {/* Botón Laptops */}
-            <button
-              onClick={() => handleExplore('laptop')}
-              className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900/40 to-cyan-900/40 
-                border border-emerald-500/30 p-6 text-left hover:from-emerald-800/60 hover:to-cyan-800/60 
-                transition-all duration-300"
-            >
-              <div className="flex items-center gap-3 mb-3">
-                <span className="text-3xl">💻</span>
-                <h2 className="text-2xl font-semibold">Explorar laptops</h2>
-              </div>
-              <p className="text-white/70 text-sm">
-                Analiza el impacto de tu laptop y elige un final responsable.
-              </p>
-              <div className="absolute -bottom-1 -right-1 w-16 h-16 rounded-full bg-emerald-500/20 blur-xl group-hover:w-24 group-hover:h-24 transition-all" />
-            </button>
+              {authenticated && (
+                <button
+                  onClick={() => handleUpload('telefono')}
+                  className="text-center text-sm text-emerald-300 hover:underline"
+                >
+                  Subir mi teléfono
+                </button>
+              )}
+            </div>
+
+            {/* Card Laptops */}
+            <div className="flex flex-col gap-3">
+              <button
+                onClick={() => handleExplore('laptop')}
+                className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-900/40 to-cyan-900/40 
+                  border border-emerald-500/30 p-6 text-left hover:from-emerald-800/60 hover:to-cyan-800/60 
+                  transition-all duration-300"
+              >
+                <div className="flex items-center gap-3 mb-3">
+                  <span className="text-3xl">💻</span>
+                  <h2 className="text-2xl font-semibold">Explorar laptops</h2>
+                </div>
+                <p className="text-white/70 text-sm">
+                  Simulación demo: análisis de impacto y fin de vida responsable.
+                </p>
+                <div className="absolute -bottom-1 -right-1 w-16 h-16 rounded-full bg-emerald-500/20 blur-xl group-hover:w-24 group-hover:h-24 transition-all" />
+              </button>
+
+              {authenticated && (
+                <button
+                  onClick={() => handleUpload('laptop')}
+                  className="text-center text-sm text-emerald-300 hover:underline"
+                >
+                  Subir mi laptop
+                </button>
+              )}
+            </div>
           </div>
 
           {!authenticated && (
             <p className="mt-10 text-white/60 text-sm">
-              ¿Ya tienes una cuenta?{' '}
+              ¿Quieres guardar tus resultados?{' '}
               <button
-                onClick={() => navigate('/login')}
+                onClick={() => navigate('/register')}
                 className="text-emerald-300 hover:underline"
               >
-                Inicia sesión
+                Regístrate gratis
               </button>
             </p>
           )}
