@@ -20,6 +20,12 @@ import DemoSimulation from './components/demo/DemoSimulation';
 import Results from './components/simulation/Results';
 import MyDevices from './components/devices/MyDevices';
 
+// ✅ IMPORTACIONES DE ADMIN
+import AdminPanel from './components/admin/AdminPanel';
+import AdminDashboard from './components/admin/AdminDashboard';
+import AdminUsers from './components/admin/AdminUsers';
+import DeviceDetail from './components/admin/DeviceDetail';
+
 export default function App() {
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,7 +45,6 @@ export default function App() {
       {/* NAV */}
       <nav className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur-xl">
         <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center">
-          {/* ✅ LOGO SIEMPRE REDIRIGE A / */}
           <Link
             to="/"
             className="flex items-center gap-3 font-semibold"
@@ -50,43 +55,33 @@ export default function App() {
             </span>
           </Link>
 
-          {/* ACCIONES NAV */}
           <div className="flex items-center gap-2">
             {!authenticated ? (
-              <>
-                {/* ✅ Solo Registrarse (sin botón Iniciar sesión) */}
-                <Link
-                  to="/register"
-                  className={[
-                    "px-4 py-1.5 rounded-full text-sm transition border",
-                    isRegister
-                      ? "bg-emerald-500/25 text-emerald-100 border-emerald-400/35"
-                      : "bg-emerald-500/15 text-emerald-200 border-emerald-400/25 hover:bg-emerald-500/25",
-                  ].join(" ")}
-                >
-                  Registrarse
-                </Link>
-              </>
+              <Link
+                to="/register"
+                className={[
+                  "px-4 py-1.5 rounded-full text-sm transition border",
+                  isRegister
+                    ? "bg-emerald-500/25 text-emerald-100 border-emerald-400/35"
+                    : "bg-emerald-500/15 text-emerald-200 border-emerald-400/25 hover:bg-emerald-500/25",
+                ].join(" ")}
+              >
+                Registrarse
+              </Link>
             ) : (
               <>
                 <span className="hidden sm:block text-sm text-white/70">
                   Hola{user?.name ? `, ${user.name}` : ""}
                 </span>
-
                 <Link
                   to="/dashboard"
-                  className="px-4 py-1.5 rounded-full text-sm transition
-                    bg-white/5 border border-white/10 text-white/80
-                    hover:text-white hover:bg-white/10"
+                  className="px-4 py-1.5 rounded-full text-sm transition bg-white/5 border border-white/10 text-white/80 hover:text-white hover:bg-white/10"
                 >
                   Dashboard
                 </Link>
-
                 <button
                   onClick={handleLogout}
-                  className="px-4 py-1.5 rounded-full text-sm transition
-                    bg-red-500/10 border border-red-400/30 text-red-300
-                    hover:bg-red-500/20 hover:text-red-200"
+                  className="px-4 py-1.5 rounded-full text-sm transition bg-red-500/10 border border-red-400/30 text-red-300 hover:bg-red-500/20 hover:text-red-200"
                 >
                   Cerrar sesión
                 </button>
@@ -98,7 +93,6 @@ export default function App() {
 
       {/* MAIN */}
       <main className="flex-1 relative overflow-hidden">
-        {/* Fondo premium */}
         <div className="absolute inset-0">
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
           <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -110,32 +104,32 @@ export default function App() {
 
         <div className="relative max-w-6xl mx-auto px-4 py-10">
           <Routes>
-            {/* ✅ Página de inicio pública */}
+            {/* Página de inicio pública */}
             <Route path="/" element={<Home />} />
 
             {/* Rutas protegidas */}
             <Route
               path="/login"
-              element={
-                authenticated ? <Navigate to="/dashboard" replace /> : <Login />
-              }
+              element={authenticated ? <Navigate to="/dashboard" replace /> : <Login />}
             />
-
             <Route
               path="/register"
-              element={
-                authenticated ? <Navigate to="/dashboard" replace /> : <Register />
-              }
+              element={authenticated ? <Navigate to="/dashboard" replace /> : <Register />}
             />
 
+            {/* Dashboard condicional por rol */}
             <Route
               path="/dashboard"
               element={
-                authenticated ? <Dashboard /> : <Navigate to="/login" replace />
+                authenticated ? (
+                  user?.role === 'admin' ? <AdminDashboard /> : <Dashboard />
+                ) : (
+                  <Navigate to="/login" replace />
+                )
               }
             />
 
-            {/* Rutas de dispositivo (requieren auth, pero no están protegidas explícitamente aquí) */}
+            {/* Rutas de dispositivo */}
             <Route 
               path="/upload/telefono" 
               element={authenticated ? <UploadPhone /> : <Navigate to="/login" replace />} 
@@ -155,6 +149,20 @@ export default function App() {
             <Route path="/demo/:type" element={<DemoSimulation />} />
             <Route path="/results/:id" element={<Results />} />
             <Route path="/my-devices" element={<MyDevices />} />
+
+            {/* Rutas de administrador */}
+            <Route 
+              path="/admin" 
+              element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/dashboard" replace />} 
+            />
+            <Route 
+              path="/admin/users" 
+              element={user?.role === 'admin' ? <AdminUsers /> : <Navigate to="/dashboard" replace />} 
+            />
+            <Route 
+              path="/admin/device/:id" 
+              element={user?.role === 'admin' ? <DeviceDetail /> : <Navigate to="/dashboard" replace />} 
+            />
           </Routes>
         </div>
       </main>

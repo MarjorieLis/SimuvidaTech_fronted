@@ -112,10 +112,6 @@ export default function Home() {
           )}
         </div>
       </div>
-
-      <div className="absolute bottom-6 w-full text-center text-white/45 text-sm">
-        © 2026 SimuVidaTech — Educar para proteger nuestro planeta.
-      </div>
     </div>
   );
 }

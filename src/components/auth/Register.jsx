@@ -17,6 +17,8 @@ export default function Register() {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminCode, setAdminCode] = useState("");
+  const [isAdminMode, setIsAdminMode] = useState(false);
   const [show, setShow] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
@@ -28,7 +30,11 @@ export default function Register() {
     setErrorMsg("");
     setLoading(true);
     try {
-      await api.post("/auth/register", { name, email, password });
+      const userData = { name, email, password };
+      if (isAdminMode) {
+        userData.adminCode = adminCode;
+      }
+      await api.post("/auth/register", userData);
       navigate("/login");
     } catch (err) {
       setErrorMsg(err.response?.data?.error || "No se pudo registrar");
@@ -128,6 +134,20 @@ export default function Register() {
               </div>
             </Field>
 
+            {/* ✅ Campo para código de administrador */}
+            {isAdminMode && (
+              <Field label="Código de administrador">
+                <input
+                  type="password"
+                  placeholder="Ingresa el código secreto"
+                  className={inputBase}
+                  value={adminCode}
+                  onChange={(e) => setAdminCode(e.target.value)}
+                  required
+                />
+              </Field>
+            )}
+
             <button
               type="submit"
               disabled={loading}
@@ -141,6 +161,17 @@ export default function Register() {
               {loading ? "Registrando..." : "Registrarse"}
             </button>
           </form>
+
+          {/* ✅ Botón para alternar modo admin */}
+          <div className="mt-4 text-center">
+            <button
+              type="button"
+              onClick={() => setIsAdminMode(!isAdminMode)}
+              className="text-sm text-emerald-300 hover:text-emerald-200 hover:underline"
+            >
+              {isAdminMode ? "← Registrarse como usuario normal" : "¿Eres administrador?"}
+            </button>
+          </div>
 
           <p className="mt-5 text-center text-sm text-white/60">
             ¿Ya tienes cuenta?{" "}
