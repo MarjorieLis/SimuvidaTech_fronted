@@ -99,9 +99,9 @@ export default function AdminPanel() {
                   </span>
                 </div>
 
-                {/* Botón de detalles */}
+                {/* Botón de detalles - Envía el origen como estado */}
                 <button
-                  onClick={() => navigate(`/admin/device/${device.id}`)}
+                  onClick={() => navigate(`/admin/device/${device.id}`, { state: { from: 'all' } })}
                   className="mt-4 w-full px-3 py-2 bg-emerald-500 text-neutral-950 font-medium rounded-lg hover:bg-emerald-600 transition"
                 >
                   Ver detalles

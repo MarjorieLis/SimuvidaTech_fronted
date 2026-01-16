@@ -1,6 +1,6 @@
 // src/components/admin/DeviceDetail.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import api from '../../services/api';
 
 export default function DeviceDetail() {
@@ -8,20 +8,15 @@ export default function DeviceDetail() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const { id } = useParams();
+  const location = useLocation();
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDevice = async () => {
       try {
-        const response = await api.get('/devices/admin');
-        const deviceData = response.data.find(d => d.id == id);
-        
-        if (!deviceData) {
-          setError('Dispositivo no encontrado');
-          return;
-        }
-        
-        setDevice(deviceData);
+        // Cargar el dispositivo directamente por su ID (más eficiente)
+        const response = await api.get(`/devices/${id}`);
+        setDevice(response.data);
       } catch (err) {
         console.error('Error al cargar dispositivo:', err);
         setError('No se pudo cargar el dispositivo');
@@ -62,7 +57,17 @@ export default function DeviceDetail() {
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <h1 className="text-xl font-semibold">Detalles del dispositivo</h1>
           <button
-            onClick={() => navigate('/admin')}
+            onClick={() => {
+              // Regresar al origen correcto
+              const from = location.state?.from;
+              if (from === 'phones') {
+                navigate('/admin/phones');
+              } else if (from === 'laptops') {
+                navigate('/admin/laptops');
+              } else {
+                navigate('/admin');
+              }
+            }}
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full text-sm bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
           >
             ← Volver a dispositivos
