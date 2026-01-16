@@ -15,10 +15,12 @@ export default function DeviceDetail() {
       try {
         const response = await api.get('/devices/admin');
         const deviceData = response.data.find(d => d.id == id);
+        
         if (!deviceData) {
           setError('Dispositivo no encontrado');
           return;
         }
+        
         setDevice(deviceData);
       } catch (err) {
         console.error('Error al cargar dispositivo:', err);
@@ -55,6 +57,7 @@ export default function DeviceDetail() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
+      {/* Encabezado */}
       <div className="sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur-xl px-4 py-3">
         <div className="max-w-4xl mx-auto flex justify-between items-center">
           <h1 className="text-xl font-semibold">Detalles del dispositivo</h1>
@@ -67,6 +70,7 @@ export default function DeviceDetail() {
         </div>
       </div>
 
+      {/* Contenido */}
       <div className="relative max-w-4xl mx-auto px-4 py-12">
         <div className="bg-white/5 backdrop-blur-xl rounded-2xl border border-white/10 p-6">
           <div className="flex items-start gap-4 mb-6">
@@ -80,6 +84,7 @@ export default function DeviceDetail() {
             </div>
           </div>
 
+          {/* Impacto ambiental detallado */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div className="bg-green-500/10 border border-green-400/20 rounded-xl p-4">
               <h3 className="font-semibold text-green-300 mb-2">Impacto CO₂</h3>
@@ -100,6 +105,7 @@ export default function DeviceDetail() {
             </div>
           </div>
 
+          {/* Materiales */}
           <div className="mb-6">
             <h3 className="font-semibold mb-2">Materiales utilizados</h3>
             <p className="bg-white/5 border border-white/10 rounded-lg p-3">
@@ -107,17 +113,8 @@ export default function DeviceDetail() {
             </p>
           </div>
 
+          {/* Fecha de registro */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div>
-              <h3 className="font-semibold mb-2">Estado</h3>
-              <span className={`px-3 py-1 rounded-full text-sm ${
-                device.reviewed 
-                  ? 'bg-emerald-500/10 text-emerald-300 border border-emerald-400/20' 
-                  : 'bg-yellow-500/10 text-yellow-300 border border-yellow-400/20'
-              }`}>
-                {device.reviewed ? 'Aprobado' : 'Pendiente revisión'}
-              </span>
-            </div>
             <div>
               <h3 className="font-semibold mb-2">Fecha de registro</h3>
               <p className="text-white/60">{new Date(device.created_at).toLocaleDateString()}</p>
