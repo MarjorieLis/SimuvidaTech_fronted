@@ -163,6 +163,7 @@ export default function App() {
               path="/admin/device/:id" 
               element={user?.role === 'admin' ? <DeviceDetail /> : <Navigate to="/dashboard" replace />} 
             />
+            <Route path="/simulation/:id/results" element={<Results />} />
           </Routes>
         </div>
       </main>

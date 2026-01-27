@@ -1,6 +1,5 @@
-// src/components/simulation/Results.jsx
 import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useLocation } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
 import jsPDF from 'jspdf';
@@ -8,75 +7,70 @@ import html2canvas from 'html2canvas';
 
 export default function Results() {
   const [device, setDevice] = useState(null);
-  const [decisions, setDecisions] = useState([]);
   const [impact, setImpact] = useState({ CO2: 0, agua: 0, residuos: 0, score: 0 });
+  const [decisionData, setDecisionData] = useState({ uso: 'No registrada', finVida: 'No registrada' });
   const navigate = useNavigate();
   const { id } = useParams();
+  const location = useLocation();
 
-  // Cargar dispositivo y decisiones
+  // Extraer state enviado desde Simulation.jsx
+  const { years, decision, impact: initialImpact } = location.state || {};
+
   useEffect(() => {
     const loadData = async () => {
       try {
+        // Cargar dispositivo (solo para mostrar info, no para cálculos)
         const deviceRes = await api.get(`/devices/${id}`);
         setDevice(deviceRes.data);
 
-        const decisionsRes = await api.get(`/devices/${id}/decisions`);
-        setDecisions(decisionsRes.data);
+        // Si vienen datos del state, usarlos directamente
+        if (years !== undefined && decision) {
+          // Calcular puntuación ecológica
+          let score = 100;
+          if (years === "1 año") score -= 20;
+          else if (years === "2 años") score -= 10;
 
-        // Calcular impacto final
-        let baseCO2 = deviceRes.data.type === 'telefono' ? 150 : 300;
-        let baseAgua = deviceRes.data.type === 'telefono' ? 100 : 200;
-        let baseResiduos = deviceRes.data.type === 'telefono' ? 10 : 20;
+          if (decision === "tirar") score -= 30;
+          else if (decision === "reparar") score += 10;
+          else if (decision === "reciclar") score += 15;
 
-        let CO2 = baseCO2;
-        let agua = baseAgua;
-        let residuos = baseResiduos;
-        let score = 100;
+          // Asegurar que el impacto tenga las propiedades correctas
+          setImpact({
+            CO2: Math.round(initialImpact?.CO2 || initialImpact?.co2 || 0),
+            agua: Math.round(initialImpact?.agua || initialImpact?.water || 0),
+            residuos: Math.round(initialImpact?.residuos || initialImpact?.raee || 0),
+            score: Math.max(20, Math.min(100, Math.round(score)))
+          });
 
-        // Ajustar por uso
-        const usoDecision = decisionsRes.data.find(d => d.stage === 1)?.decision;
-        if (usoDecision === "1 año") {
-          CO2 *= 1.2; agua *= 1.2; residuos *= 1.2; score -= 20;
-        } else if (usoDecision === "2 años") {
-          CO2 *= 1.1; agua *= 1.1; residuos *= 1.1; score -= 10;
+          setDecisionData({
+            uso: years,
+            finVida: decision
+          });
         }
-
-        // Ajustar por fin de vida
-        const finDecision = decisionsRes.data.find(d => d.stage === 2)?.decision;
-        if (finDecision === "desechar") {
-          CO2 *= 1.3; agua *= 1.3; residuos *= 1.3; score -= 30;
-        } else if (finDecision === "reparar") {
-          CO2 *= 0.9; agua *= 0.9; residuos *= 0.9; score += 10;
-        } else if (finDecision === "reciclar") {
-          CO2 *= 0.8; agua *= 0.8; residuos *= 0.8; score += 15;
-        }
-
-        setImpact({
-          CO2: Math.round(CO2),
-          agua: Math.round(agua),
-          residuos: Math.round(residuos),
-          score: Math.max(20, Math.min(100, Math.round(score)))
-        });
-
       } catch (err) {
         console.error('Error al cargar datos:', err);
         navigate('/dashboard');
       }
     };
     loadData();
-  }, [id, navigate]);
+  }, [id, navigate, location.state]);
 
-  // Generar recomendaciones personalizadas
+  // ✅ CORRECCIÓN CLAVE: normalizar decisión para evitar fallos
   const getRecommendations = () => {
-    const finDecision = decisions.find(d => d.stage === 2)?.decision;
-    if (!finDecision) return [];
+    const finVida = (decisionData.finVida || '').toLowerCase().trim();
 
-    switch (finDecision) {
-      case "desechar":
+    switch (finVida) {
+      case "tirar":
         return [
           "💡 Considera donar tu dispositivo. ¡Puede seguir siendo útil!",
           "♻️ Busca puntos de reciclaje autorizados en tu ciudad.",
           "🔋 Retira la batería antes de desechar. Es un residuo peligroso."
+        ];
+      case "donar":
+        return [
+          "✅ ¡Excelente decisión! Donar extiende la vida útil del dispositivo.",
+          "📍 Busca centros de acopio para donación en Loja (Fundación Manos Unidas, etc.).",
+          "📱 Asegúrate de borrar todos tus datos antes de entregarlo."
         ];
       case "reciclar":
         return [
@@ -95,14 +89,9 @@ export default function Results() {
     }
   };
 
-  // ✅ Función para generar y descargar el PDF
   const handleDownloadPDF = async () => {
     if (!device) return;
 
-    const usoDecision = decisions.find(d => d.stage === 1)?.decision || "No registrada";
-    const finDecision = decisions.find(d => d.stage === 2)?.decision || "No registrada";
-
-    // Crear contenedor temporal
     const pdfContent = document.createElement('div');
     pdfContent.style.width = '800px';
     pdfContent.style.padding = '40px';
@@ -126,8 +115,8 @@ export default function Results() {
 
       <div style="margin-bottom: 20px;">
         <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Decisiones Tomadas</h2>
-        <p><strong>Uso:</strong> ${usoDecision}</p>
-        <p><strong>Fin de vida:</strong> ${finDecision}</p>
+        <p><strong>Uso:</strong> ${decisionData.uso}</p>
+        <p><strong>Fin de vida:</strong> ${decisionData.finVida}</p>
       </div>
 
       <div style="margin-bottom: 20px;">
@@ -177,10 +166,8 @@ export default function Results() {
         heightLeft -= pageHeight;
       }
 
-      // Nombre de archivo limpio
       const cleanModel = device.model.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
       pdf.save(`simuvidatech_${device.type}_${cleanModel}.pdf`);
-
     } catch (err) {
       console.error('Error al generar PDF:', err);
       alert('❌ Error al generar el PDF. Intenta nuevamente.');
@@ -189,27 +176,27 @@ export default function Results() {
     }
   };
 
-  if (!device) return (
-    <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="mt-4">Cargando resultados...</p>
+  // Si aún no hay dispositivo, muestra carga
+  if (!device) {
+    return (
+      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4">Cargando resultados...</p>
+        </div>
       </div>
-    </div>
-  );
-
-  const usoDecision = decisions.find(d => d.stage === 1)?.decision || "No registrada";
-  const finDecision = decisions.find(d => d.stage === 2)?.decision || "No registrada";
+    );
+  }
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo premium */}
+      {/* Fondo */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
         <div className="absolute -bottom-32 -right-28 h-[26rem] w-[26rem] rounded-full bg-cyan-500/14 blur-3xl" />
         <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(rgba(255,255,255,0.08)_1px,transparent_0)] [background-size:24px_24px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.6)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.55)_100%)]" />
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4 py-12">
@@ -240,12 +227,12 @@ export default function Results() {
             <div className="space-y-5">
               <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl p-4">
                 <h3 className="font-medium text-emerald-200">Etapa 3: Uso</h3>
-                <p className="mt-2 text-white/80">{usoDecision}</p>
+                <p className="mt-2 text-white/80">{decisionData.uso}</p>
               </div>
 
               <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl p-4">
                 <h3 className="font-medium text-emerald-200">Etapa 5: Fin de vida</h3>
-                <p className="mt-2 text-white/80">{finDecision}</p>
+                <p className="mt-2 text-white/80">{decisionData.finVida}</p>
               </div>
             </div>
 
@@ -261,7 +248,7 @@ export default function Results() {
               </ul>
             </div>
 
-            {/* ✅ Botón PDF funcional */}
+            {/* Botón PDF */}
             <div className="mt-8 pt-6 border-t border-white/10">
               <button
                 onClick={handleDownloadPDF}
@@ -270,13 +257,58 @@ export default function Results() {
                 📄 Descargar informe completo
               </button>
             </div>
+
+            {/* Mapa de reciclaje en Loja (solo si eligió "reciclar") */}
+            {decisionData.finVida === 'reciclar' && (
+              <div className="mt-8 bg-white/5 rounded-2xl p-6 border border-white/20">
+                <h3 className="text-xl font-semibold mb-4">📍 Puntos de reciclaje en Loja</h3>
+                <p className="text-white/70 mb-4">
+                  Lleva tu dispositivo a uno de estos centros autorizados:
+                </p>
+                
+                <div className="space-y-3 mb-6">
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">🏢</span>
+                    <div>
+                      <div className="font-medium">Fundación Manos Unidas</div>
+                      <div className="text-sm text-white/60">Calle Bolívar y Sucre</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">🔄</span>
+                    <div>
+                      <div className="font-medium">Recicla Loja</div>
+                      <div className="text-sm text-white/60">Av. Universitaria</div>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-start gap-3">
+                    <span className="text-xl">🌱</span>
+                    <div>
+                      <div className="font-medium">Punto Ecológico Municipal</div>
+                      <div className="text-sm text-white/60">Parque La Tebaida</div>
+                    </div>
+                  </div>
+                </div>
+
+                <iframe
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.546225422148!2d-79.20753312485555!3d-3.992585242357395!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91d54c1a0b0b0b0b%3A0x1a0b0b0b0b0b0b0b!2sLoja%2C%20Ecuador!5e0!3m2!1sen!2sus!4v1706283600000!5m2!1sen!2sus"                  width="100%"
+                  height="250"
+                  style={{ border: 0, borderRadius: '12px' }}
+                  allowFullScreen=""
+                  loading="lazy"
+                  referrerPolicy="no-referrer-when-downgrade"
+                ></iframe>
+              </div>
+            )}
           </div>
 
           {/* Panel derecho: impacto final */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <h2 className="text-2xl font-semibold mb-6">📈 Impacto ambiental final</h2>
             
-            <div className="h-64 min-h-[16rem]"> {/* ✅ Evita error de Recharts */}
+            <div className="h-64 min-h-[16rem]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[
                   { name: 'CO₂', value: impact.CO2 },

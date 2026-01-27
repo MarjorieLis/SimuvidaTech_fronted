@@ -1,186 +1,239 @@
-// src/components/simulation/Simulation.jsx
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
-import { getAdjustedImpact } from '../../data/deviceData';
+import { motion, AnimatePresence } from 'framer-motion';
+
+const stages = [
+  { id: 'extraccion', name: 'Extracción', icon: '⛏️' },
+  { id: 'fabricacion', name: 'Fabricación', icon: '🏭' },
+  { id: 'uso', name: 'Uso', icon: '📱' },
+  { id: 'transporte', name: 'Transporte', icon: '🚚' },
+  { id: 'finVida', name: 'Fin de vida', icon: '♻️' }
+];
 
 export default function Simulation() {
   const [device, setDevice] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [impact, setImpact] = useState({ CO2: 0, agua: 0, residuos: 0, score: 0 });
-  const navigate = useNavigate();
+  const [currentStage, setCurrentStage] = useState(0);
+  const [yearsOfUse, setYearsOfUse] = useState(3);
+  const [endOfLifeDecision, setEndOfLifeDecision] = useState('');
+  const [impact, setImpact] = useState({ co2: 0, water: 0, raee: 0 });
   const { id } = useParams();
+  const navigate = useNavigate();
 
-  // Cargar dispositivo desde backend
   useEffect(() => {
     const loadDevice = async () => {
       try {
-        if (!id) {
-          navigate('/dashboard');
-          return;
-        }
-        const response = await api.get(`/devices/${id}`);
-        setDevice(response.data);
-        simulateImpact(response.data);
+        const res = await api.get(`/devices/${id}`);
+        setDevice(res.data);
+        calculateImpact(3, 'reciclar');
       } catch (err) {
         console.error('Error al cargar dispositivo:', err);
-        setError('No se pudo cargar el dispositivo');
-        navigate('/dashboard');
-      } finally {
-        setLoading(false);
+        navigate('/my-devices');
       }
     };
     loadDevice();
-  }, [id, navigate]);
+  }, [id]);
 
-  // ✅ LÓGICA CORREGIDA: Usa getAdjustedImpact con manejo seguro de year
-  const simulateImpact = (device) => {
-    // Asegúrate de que year sea un número o null
-    const year = device.year ? parseInt(device.year, 10) : null;
-    const impactData = getAdjustedImpact(device.type, year);
-    setImpact(impactData);
+  // ✅ CORRECCIÓN CLAVE: manejar valores nulos y evitar NaN
+  const calculateImpact = (years, decision) => {
+    const baseCo2 = device?.co2_impact != null ? parseFloat(device.co2_impact) : 50;
+    const baseWater = device?.water_impact != null ? parseFloat(device.water_impact) : 1000;
+    const baseRaee = device?.raee_impact != null ? parseFloat(device.raee_impact) : 2;
+
+    const co2 = parseFloat((baseCo2 * (5 / years)).toFixed(2)) || 0;
+    const water = parseFloat((baseWater * (5 / years)).toFixed(2)) || 0;
+    const raee = decision === 'reciclar' 
+  ? baseRaee * 0.2 
+  : decision === 'donar' 
+    ? baseRaee * 0.5 
+    : decision === 'reparar'
+      ? baseRaee * 0.3  // Reparar reduce residuos, pero no tanto como reciclar
+      : baseRaee; // tirar
+
+    setImpact({ co2, water, raee });
   };
 
-  const handleSimulate = async () => {
-    // Aquí irá la lógica de decisiones del usuario
-    alert('✅ Simulación completada. ¡Mira tu impacto!');
+  const handleNext = () => {
+    if (currentStage === 2) {
+      calculateImpact(yearsOfUse, endOfLifeDecision || 'reciclar');
+    }
+    if (currentStage < stages.length - 1) {
+      setCurrentStage(currentStage + 1);
+    }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="mt-4">Cargando simulación...</p>
-      </div>
-    </div>
-  );
+  const handlePrev = () => {
+    if (currentStage > 0) {
+      setCurrentStage(currentStage - 1);
+    }
+  };
 
-  if (error) return (
-    <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
-      <div className="text-center p-6 bg-red-500/10 border border-red-500/30 rounded-xl">
-        <p className="text-red-200">{error}</p>
-        <button 
-          onClick={() => navigate('/dashboard')}
-          className="mt-4 px-4 py-2 bg-emerald-500 text-neutral-950 rounded-lg"
-        >
-          Volver al Dashboard
-        </button>
-      </div>
-    </div>
-  );
+  const handleFinish = () => {
+    const usoText = yearsOfUse === 1 ? "1 año" : 
+                   yearsOfUse === 2 ? "2 años" : 
+                   "3+ años";
+
+    navigate(`/simulation/${id}/results`, {
+      state: { 
+        years: usoText,
+        decision: endOfLifeDecision,
+        impact: {
+          CO2: impact.co2,
+          agua: impact.water,
+          residuos: impact.raee
+        }
+      }
+    });
+  };
+
+  if (!device) return null;
 
   return (
-    <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo premium */}
-      <div className="absolute inset-0">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
-        <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
-        <div className="absolute -bottom-32 -right-28 h-[26rem] w-[26rem] rounded-full bg-cyan-500/14 blur-3xl" />
-        <div className="absolute inset-0 opacity-35 [background-image:radial-gradient(rgba(255,255,255,0.08)_1px,transparent_0)] [background-size:24px_24px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.6)_100%)]" />
+    <div className="min-h-screen bg-gradient-to-br from-emerald-900/20 to-cyan-900/10 p-4">
+      <div className="max-w-4xl mx-auto mb-8">
+        <div className="flex justify-between mb-2">
+          {stages.map((stage, index) => (
+            <motion.div
+              key={stage.id}
+              initial={{ scale: 0.8, opacity: 0.5 }}
+              animate={{ 
+                scale: index === currentStage ? 1.2 : 1,
+                opacity: index <= currentStage ? 1 : 0.5,
+                color: index <= currentStage ? '#4ade80' : '#64748b'
+              }}
+              transition={{ duration: 0.3 }}
+              className="flex flex-col items-center"
+            >
+              <span className="text-2xl">{stage.icon}</span>
+              <span className="text-sm mt-1">{stage.name}</span>
+            </motion.div>
+          ))}
+        </div>
+        <div className="h-2 bg-white/20 rounded-full overflow-hidden">
+          <motion.div
+            initial={{ width: '0%' }}
+            animate={{ width: `${((currentStage + 1) / stages.length) * 100}%` }}
+            transition={{ duration: 0.5 }}
+            className="h-full bg-emerald-500"
+          />
+        </div>
       </div>
 
-      <div className="relative max-w-6xl mx-auto px-4 py-12">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
-          <div>
-            <p className="text-sm text-emerald-200/90 font-medium">Simulación ambiental</p>
-            <h1 className="mt-1 text-3xl md:text-4xl font-semibold flex items-center gap-3">
-              <span className="text-2xl">🌍</span> Impacto ecológico
-            </h1>
-            <p className="mt-2 text-white/65 max-w-2xl">
-              Tu {device.type} <strong>{device.model}</strong> está listo para la simulación.
-            </p>
-          </div>
-
-          <div className="flex gap-2">
-            <button
-              onClick={() => navigate('/dashboard')}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
-            >
-              ← Volver al Dashboard
-            </button>
-            {/* ✅ Botón nuevo: Volver a mis dispositivos */}
-            <button
-              onClick={() => navigate('/my-devices')}
-              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm bg-emerald-500/10 text-emerald-200 border border-emerald-400/20 hover:bg-emerald-500/20 hover:text-emerald-100 transition"
-            >
-              ← Mis dispositivos
-            </button>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Panel de impacto */}
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
-            <h2 className="text-2xl font-semibold mb-6">📊 Resultados ambientales</h2>
+      <div className="max-w-2xl mx-auto bg-white/10 backdrop-blur-xl rounded-2xl p-6 border border-white/20">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentStage}
+            initial={{ opacity: 0, x: 20 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -20 }}
+            transition={{ duration: 0.3 }}
+            className="text-center"
+          >
+            <h2 className="text-2xl font-bold mb-6">{stages[currentStage].name}</h2>
             
-            <div className="space-y-6">
-              <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl p-4">
-                <div className="flex justify-between">
-                  <span className="text-emerald-200">Puntuación ecológica</span>
-                  <span className="text-2xl font-bold text-emerald-300">{impact.score}<span className="text-lg">/100</span></span>
-                </div>
-                <div className="mt-2 w-full bg-white/10 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-2 rounded-full" 
-                    style={{ width: `${impact.score}%` }}
-                  ></div>
+            {currentStage === 2 && (
+              <div className="space-y-4">
+                <p className="text-white/80">¿Cuántos años usarás este dispositivo?</p>
+                <input
+                  type="range"
+                  min="2"
+                  max="5"
+                  value={yearsOfUse}
+                  onChange={(e) => {
+                    const val = parseInt(e.target.value);
+                    setYearsOfUse(val);
+                    calculateImpact(val, endOfLifeDecision || 'reciclar');
+                  }}
+                  className="w-full h-2 bg-white/30 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                />
+                <div className="text-3xl font-bold text-emerald-300">{yearsOfUse} años</div>
+              </div>
+            )}
+
+            {currentStage === 4 && (
+              <div className="space-y-4">
+                <p className="text-white/80">¿Qué harás al final de su vida útil?</p>
+               <div className="grid grid-cols-4 gap-3">
+  {[
+    { id: 'tirar', label: 'Tirar', icon: '🗑️', color: 'bg-red-500/20', borderColor: 'border-red-500' },
+    { id: 'donar', label: 'Donar', icon: '🎁', color: 'bg-yellow-500/20', borderColor: 'border-yellow-500' },
+    { id: 'reparar', label: 'Reparar', icon: '🔧', color: 'bg-blue-500/20', borderColor: 'border-blue-500' },
+    { id: 'reciclar', label: 'Reciclar', icon: '♻️', color: 'bg-green-500/20', borderColor: 'border-green-500' }
+  ].map(option => (
+    <button
+      key={option.id}
+      onClick={() => {
+        const cleanDecision = option.id.trim().toLowerCase();
+        setEndOfLifeDecision(cleanDecision);
+        calculateImpact(yearsOfUse, cleanDecision);
+      }}
+      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center
+        ${endOfLifeDecision === option.id.toLowerCase()
+          ? `${option.borderColor} bg-emerald-500/30`
+          : 'border-white/20 hover:border-white/40'
+        } ${option.color}`}
+    >
+      <div className="text-3xl mb-2">{option.icon}</div>
+      <div className="text-sm font-medium text-center">{option.label}</div>
+    </button>
+  ))}
+</div>
+              </div>
+            )}
+
+            {currentStage !== 2 && currentStage !== 4 && (
+              <div className="text-white/70 py-8">
+                {stages[currentStage].name} del dispositivo
+              </div>
+            )}
+
+            {currentStage >= 2 && (
+              <div className="mt-6 p-4 bg-white/5 rounded-xl border border-white/10" style={{ minHeight: '80px' }}>
+                <h3 className="font-semibold mb-2">Impacto ambiental estimado</h3>
+                <div className="grid grid-cols-3 gap-2 text-sm">
+                  <div className="bg-green-500/10 p-2 rounded">CO₂: {impact.co2} kg</div>
+                  <div className="bg-blue-500/10 p-2 rounded">Agua: {impact.water} L</div>
+                  {/* ✅ CORRECCIÓN: evitar .toFixed() en undefined */}
+                  <div className="bg-yellow-500/10 p-2 rounded">RAEE: {(Number(impact.raee) || 0).toFixed(2)} kg</div>
                 </div>
               </div>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-white/70">CO₂</span>
-                  <span className="text-emerald-300">{impact.CO2} kg</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/70">Agua</span>
-                  <span className="text-emerald-300">{impact.agua} L</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-white/70">Residuos</span>
-                  <span className="text-emerald-300">{impact.residuos} kg</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-8 flex gap-3">
-              <button
-                onClick={() => navigate(`/simulation/${id}/decisions`)}
-                className="flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition"
-              >
-                Simular decisiones →
-              </button>
-            </div>
-          </div>
-
-          {/* Gráfico */}
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
-            <h2 className="text-2xl font-semibold mb-6">📈 Impacto por categoría</h2>
-            <div className="h-64 min-h-[16rem]"> {/* ✅ Añadido min-h para evitar error Recharts */}
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { name: 'CO₂', value: impact.CO2 },
-                  { name: 'Agua', value: impact.agua },
-                  { name: 'Residuos', value: impact.residuos }
-                ]}>
-                  <XAxis dataKey="name" stroke="#4ade80" />
-                  <YAxis stroke="#4ade80" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#0e7490' }}
-                    itemStyle={{ color: '#4ade80' }}
-                  />
-                  <Bar dataKey="value" fill="#0e7490" />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        <div className="mt-10 text-center text-white/45 text-sm">
-          © 2026 SimuVidaTech — Educar para proteger nuestro planeta.
+        <div className="flex justify-between mt-8">
+          <button
+            onClick={handlePrev}
+            disabled={currentStage === 0}
+            className={`px-6 py-2 rounded-lg ${
+              currentStage === 0
+                ? 'bg-white/10 text-white/30 cursor-not-allowed'
+                : 'bg-white/20 text-white hover:bg-white/30'
+            }`}
+          >
+            Anterior
+          </button>
+          
+          {currentStage === stages.length - 1 ? (
+            <button
+              onClick={handleFinish}
+              disabled={!endOfLifeDecision}
+              className={`px-6 py-2 rounded-lg font-medium ${
+                endOfLifeDecision
+                  ? 'bg-emerald-500 text-neutral-950 hover:bg-emerald-600'
+                  : 'bg-white/10 text-white/50 cursor-not-allowed'
+              }`}
+            >
+              Ver resultados
+            </button>
+          ) : (
+            <button
+              onClick={handleNext}
+              className="px-6 py-2 bg-emerald-500 text-neutral-950 rounded-lg hover:bg-emerald-600 font-medium"
+            >
+              Siguiente
+            </button>
+          )}
         </div>
       </div>
     </div>
