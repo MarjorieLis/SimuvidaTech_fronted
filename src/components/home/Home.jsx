@@ -1,13 +1,32 @@
-// src/components/home/Home.jsx
-import { useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { isAuthenticated } from '../../utils/auth';
+import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import { isAuthenticated } from "../../utils/auth";
 
-function Feature({ title, desc }) {
+function Chip({ active = false, icon, label }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.035] p-6 hover:bg-white/[0.055] transition shadow-[0_0_0_1px_rgba(255,255,255,0.02)]">
-      <h3 className="text-lg font-semibold mb-2">{title}</h3>
-      <p className="text-sm text-white/70 leading-relaxed">{desc}</p>
+    <span
+      className={[
+        "inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium border",
+        active
+          ? "bg-emerald-500/10 border-emerald-400/25 text-emerald-200"
+          : "bg-white/[0.02] border-white/10 text-white/70",
+      ].join(" ")}
+    >
+      <span className="text-base">{icon}</span>
+      {label}
+    </span>
+  );
+}
+
+function StatPill({ label, value }) {
+  return (
+    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 min-h-[82px] flex flex-col justify-between">
+      <div className="text-[11px] tracking-wide uppercase text-white/45">
+        {label}
+      </div>
+      <div className="mt-2 text-sm font-semibold text-white/90 leading-snug">
+        {value}
+      </div>
     </div>
   );
 }
@@ -16,55 +35,47 @@ function DeviceCard({
   icon,
   title,
   subtitle,
-  meta,
+  tag,
   onExplore,
-  onUpload,
-  authenticated,
-  onRegister,
+  secondaryLabel,
+  onSecondary,
 }) {
   return (
-    <div className="rounded-2xl border border-white/10 bg-white/[0.03] overflow-hidden shadow-[0_20px_60px_rgba(0,0,0,0.35)]">
-      <button
-        onClick={onExplore}
-        className="w-full text-left p-6 hover:bg-white/[0.05] transition relative"
-      >
-        {/* brillo sutil */}
-        <div className="absolute inset-0 opacity-0 hover:opacity-100 transition pointer-events-none bg-[radial-gradient(600px_circle_at_20%_10%,rgba(16,185,129,0.10),transparent_50%)]" />
-
-        <div className="relative flex items-start gap-4">
-          <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-2xl">
-            {icon}
-          </div>
-          <div className="min-w-0">
-            <h2 className="text-xl font-semibold leading-tight">{title}</h2>
-            <p className="mt-1 text-sm text-white/70 leading-relaxed">{subtitle}</p>
-            {meta ? (
-              <p className="mt-3 text-xs text-white/55">{meta}</p>
-            ) : null}
-          </div>
+    <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition shadow-[0_18px_55px_rgba(0,0,0,0.32)]">
+      <div className="flex items-start gap-4">
+        <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-white/5 border border-white/10 text-2xl">
+          {icon}
         </div>
 
-        <div className="relative mt-5 inline-flex items-center gap-2 text-sm font-medium text-emerald-300">
-          Explorar demo <span className="text-white/40">→</span>
-        </div>
-      </button>
+        <div className="min-w-0">
+          <h3 className="text-xl font-semibold leading-tight">{title}</h3>
+          <p className="mt-1.5 text-sm text-white/70 leading-relaxed">
+            {subtitle}
+          </p>
 
-      <div className="px-6 pb-6">
-        {authenticated ? (
-          <button
-            onClick={onUpload}
-            className="w-full rounded-xl border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/15 text-emerald-200 text-sm font-semibold py-3 transition"
-          >
-            Subir mi dispositivo
-          </button>
-        ) : (
-          <button
-            onClick={onRegister}
-            className="w-full rounded-xl border border-white/10 bg-white/5 hover:bg-white/10 text-sm font-semibold py-3 transition"
-          >
-            Crea tu cuenta para guardar resultados
-          </button>
-        )}
+          {tag ? (
+            <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3 py-1 text-xs text-white/60">
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/80" />
+              {tag}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      <div className="mt-6 flex flex-col sm:flex-row gap-3">
+        <button
+          onClick={onExplore}
+          className="px-6 py-3 rounded-xl font-semibold bg-emerald-500 text-neutral-950 hover:opacity-95 transition shadow-lg shadow-emerald-500/15"
+        >
+          Explorar demo
+        </button>
+
+        <button
+          onClick={onSecondary}
+          className="px-6 py-3 rounded-xl font-semibold border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition"
+        >
+          {secondaryLabel}
+        </button>
       </div>
     </div>
   );
@@ -76,191 +87,129 @@ export default function Home() {
 
   const indicators = useMemo(
     () => [
-      { label: 'Simulación', value: 'Ciclo de vida completo' },
-      { label: 'Resultado', value: 'Impacto + recomendaciones' },
-      { label: 'Comparación', value: 'Escenarios y alternativas' },
-      { label: 'Exportable', value: 'Reportes claros' },
+      { label: "Flujo", value: "Dispositivo → decisiones → comparación" },
+      { label: "Enfoque", value: "Aprendizaje y criterio ambiental" },
+      { label: "Uso", value: "Ideal para clase e informes" },
+      { label: "Salida", value: "Resumen claro del escenario" },
     ],
     []
   );
 
-  const handleExplore = (type) => navigate(`/demo/${type}`);
-
-  const handleUpload = (type) => {
-    if (authenticated) navigate(`/upload/${type}`);
-    else navigate('/login');
-  };
-
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo más limpio pero “bonito” */}
+      {/* Fondo suave */}
       <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.12),transparent_55%)]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(34,211,238,0.08),transparent_55%)]" />
-        <div className="absolute inset-0 opacity-20 [background-image:radial-gradient(rgba(255,255,255,0.06)_1px,transparent_0)] [background-size:28px_28px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.75)_100%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.10),transparent_62%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(34,211,238,0.06),transparent_62%)]" />
+        <div className="absolute inset-0 opacity-12 [background-image:radial-gradient(rgba(255,255,255,0.06)_1px,transparent_0)] [background-size:36px_36px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.88)_100%)]" />
       </div>
 
-      {/* HERO */}
-      <section className="relative max-w-6xl mx-auto px-4 pt-16 pb-10">
-        <div className="max-w-4xl mx-auto text-center">
-          {/* Badge (sin “piloto”) */}
-          <div className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-2 text-xs text-white/70">
-            <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_18px_rgba(16,185,129,0.65)]" />
-            Simulador educativo de RAEE • UIDE
+      {/* HERO centrado */}
+      <section className="relative max-w-6xl mx-auto px-6 pt-14 pb-10">
+        <div className="max-w-3xl mx-auto">
+          <div className="text-emerald-200/90 font-semibold">
+            SimuVidaTech • Simulación educativa RAEE
           </div>
 
-          {/* brillo detrás del título */}
-          <div className="relative mt-6">
-            <div className="absolute -inset-x-10 -top-8 h-24 blur-3xl opacity-40 bg-[radial-gradient(closest-side,rgba(16,185,129,0.35),transparent)]" />
-            <h1 className="relative text-4xl md:text-6xl font-bold tracking-tight">
-              SimuVidaTech
-            </h1>
-          </div>
+          <h1 className="mt-4 text-5xl sm:text-6xl md:text-[64px] font-extrabold leading-[0.98] tracking-tight">
+            Toma <span className="text-emerald-300">mejores decisiones</span>{" "}
+            con <span className="text-emerald-300">escenarios</span> comparables
+            y un <span className="text-emerald-300">resumen</span> listo.
+          </h1>
 
-          <p className="mt-5 text-lg md:text-2xl text-white/75 leading-relaxed">
-            Visualiza el impacto ambiental de un teléfono o laptop, prueba decisiones de fin de vida
-            y genera un reporte claro para tu proyecto o clase.
+          <p className="mt-6 text-base sm:text-lg text-white/70 leading-relaxed max-w-2xl">
+            Elige un dispositivo, prueba decisiones de uso y fin de vida, y
+            observa cómo cambia el escenario.
           </p>
 
-          <div className="mt-8 flex flex-col sm:flex-row gap-3 justify-center">
-            <button
-              onClick={() => navigate(authenticated ? '/dashboard' : '/register')}
-              className="px-7 py-3.5 rounded-xl font-semibold bg-emerald-500 text-neutral-950 hover:opacity-95 transition shadow-lg shadow-emerald-500/20"
-            >
-              {authenticated ? 'Ir al panel' : 'Crear cuenta gratis'}
-            </button>
-            <button
-              onClick={() => navigate('/about')}
-              className="px-7 py-3.5 rounded-xl font-semibold border border-white/10 bg-white/[0.04] hover:bg-white/[0.07] transition"
-            >
-              Ver cómo funciona
-            </button>
+          <div className="mt-8 flex flex-col gap-4">
+            <div className="flex flex-wrap gap-3">
+              <Chip icon="🌿" label="CO₂" />
+              <Chip active icon="💧" label="Agua" />
+              <Chip icon="♻️" label="RAEE" />
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <button
+                onClick={() => navigate("/demo/telefono")}
+                className="px-7 py-3.5 rounded-xl font-semibold bg-emerald-500 text-neutral-950 hover:opacity-95 transition shadow-lg shadow-emerald-500/15"
+              >
+                Probar simulación
+              </button>
+
+              <button
+                onClick={() => navigate("/about")}
+                className="px-7 py-3.5 rounded-xl font-semibold border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition"
+              >
+                Ver cómo funciona
+              </button>
+
+              {authenticated && (
+                <button
+                  onClick={() => navigate("/dashboard")}
+                  className="px-7 py-3.5 rounded-xl font-semibold border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition"
+                >
+                  Ir al panel
+                </button>
+              )}
+            </div>
+
+            <div className="text-xs text-white/45">
+              Resultados estimados con fines educativos.
+            </div>
           </div>
 
-          {/* Indicadores */}
           <div className="mt-10 grid grid-cols-2 md:grid-cols-4 gap-3">
             {indicators.map((it) => (
-              <div
-                key={it.label}
-                className="rounded-2xl border border-white/10 bg-white/[0.03] p-4 text-left shadow-[0_0_0_1px_rgba(255,255,255,0.02)]"
-              >
-                <div className="text-xs text-white/55">{it.label}</div>
-                <div className="mt-1 text-sm font-semibold text-white/90">
-                  {it.value}
-                </div>
-              </div>
+              <StatPill key={it.label} label={it.label} value={it.value} />
             ))}
           </div>
         </div>
+
+        <div className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </section>
 
-      {/* VALOR */}
-      <section className="relative max-w-6xl mx-auto px-4 py-12">
-        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 md:p-12 shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl font-bold">¿Qué puedes hacer aquí?</h2>
-            <p className="mt-3 text-white/70 leading-relaxed">
-              No es solo ver números: es entender el ciclo de vida y justificar decisiones sostenibles.
-            </p>
-          </div>
-
-          <div className="mt-10 grid md:grid-cols-3 gap-6">
-            <Feature
-              title="Simular el ciclo de vida"
-              desc="Desde fabricación hasta disposición final, con variables ajustables según el caso."
-            />
-            <Feature
-              title="Comparar escenarios"
-              desc="Reusar, reparar, reciclar o donar: compara impacto y argumenta tu elección."
-            />
-            <Feature
-              title="Generar un reporte"
-              desc="Guarda resultados y arma un resumen listo para presentar o adjuntar a un informe."
-            />
-          </div>
-        </div>
-      </section>
-
-      {/* CATEGORÍAS */}
-      <section className="relative max-w-6xl mx-auto px-4 py-12">
-        <div className="max-w-3xl mx-auto text-center">
+      {/* Categorías centradas */}
+      <section className="relative max-w-6xl mx-auto px-6 py-12">
+        <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold">Explora por categoría</h2>
           <p className="mt-3 text-white/70">
-            Usa una demo rápida o sube tu propio dispositivo para un análisis más cercano a la realidad.
+            Empieza con una demo. Si tienes cuenta, podrás subir tu dispositivo
+            para personalizar el análisis.
           </p>
         </div>
 
-        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-3xl mx-auto">
+        <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           <DeviceCard
             icon="📱"
             title="Teléfonos"
-            subtitle="Demo lista para probar decisiones de uso, reparación y fin de vida."
-            meta="Ideal para prácticas rápidas y comparaciones."
-            authenticated={authenticated}
-            onExplore={() => handleExplore('telefono')}
-            onUpload={() => handleUpload('telefono')}
-            onRegister={() => navigate('/register')}
+            subtitle="Simula decisiones de uso, reparación y fin de vida de forma rápida."
+            tag="Prácticas y comparaciones"
+            onExplore={() => navigate("/demo/telefono")}
+            secondaryLabel={
+              authenticated ? "Subir mi dispositivo" : "Iniciar sesión para subir"
+            }
+            onSecondary={() =>
+              authenticated ? navigate("/upload/telefono") : navigate("/login")
+            }
           />
 
           <DeviceCard
             icon="💻"
             title="Laptops"
-            subtitle="Analiza consumo, vida útil y opciones de disposición responsable."
-            meta="Incluye enfoque en eficiencia energética."
-            authenticated={authenticated}
-            onExplore={() => handleExplore('laptop')}
-            onUpload={() => handleUpload('laptop')}
-            onRegister={() => navigate('/register')}
+            subtitle="Evalúa consumo, vida útil y opciones responsables de disposición."
+            tag="Enfoque de eficiencia"
+            onExplore={() => navigate("/demo/laptop")}
+            secondaryLabel={
+              authenticated ? "Subir mi dispositivo" : "Iniciar sesión para subir"
+            }
+            onSecondary={() =>
+              authenticated ? navigate("/upload/laptop") : navigate("/login")
+            }
           />
         </div>
-
-        {/* CTA final */}
-        {!authenticated && (
-          <div className="mt-12 max-w-3xl mx-auto rounded-3xl border border-white/10 bg-white/[0.03] p-8 shadow-[0_30px_90px_rgba(0,0,0,0.35)]">
-            <h3 className="text-xl font-bold text-center">
-              Guarda tus resultados y arma tu evidencia
-            </h3>
-            <p className="mt-3 text-white/70 text-center">
-              Crea una cuenta para mantener tus simulaciones, comparar dispositivos y exportar reportes.
-            </p>
-
-            <div className="mt-6 grid sm:grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm font-semibold">Historial de simulaciones</p>
-                <p className="mt-1 text-xs text-white/60">Todo lo que pruebas queda guardado.</p>
-              </div>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.03] p-4">
-                <p className="text-sm font-semibold">Comparación rápida</p>
-                <p className="mt-1 text-xs text-white/60">Contrasta escenarios en minutos.</p>
-              </div>
-            </div>
-
-            <div className="mt-7 flex justify-center">
-              <button
-                onClick={() => navigate('/register')}
-                className="w-full sm:w-auto px-7 py-3.5 rounded-xl font-semibold bg-emerald-500 text-neutral-950 hover:opacity-95 transition shadow-lg shadow-emerald-500/20"
-              >
-                Crear cuenta gratis
-              </button>
-            </div>
-
-            <p className="mt-4 text-center text-xs text-white/45">
-              Si ya tienes cuenta, inicia sesión para subir tu dispositivo.
-            </p>
-          </div>
-        )}
       </section>
-
-      {/* FOOTER */}
-      <footer className="relative max-w-6xl mx-auto px-4 py-10 border-t border-white/10">
-        <div className="text-center">
-          <p className="text-sm text-white/60">SimuVidaTech • Tecnología con criterio ambiental</p>
-          <p className="text-xs text-white/35 mt-2">
-            Diseñado para aprendizaje, reportes y decisiones responsables.
-          </p>
-        </div>
-      </footer>
     </div>
   );
 }

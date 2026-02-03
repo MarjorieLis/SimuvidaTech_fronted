@@ -20,7 +20,7 @@ import DemoSimulation from './components/demo/DemoSimulation';
 import Results from './components/simulation/Results';
 import MyDevices from './components/devices/MyDevices';
 import About from "./pages/About";
-import Methodology from "./pages/Methodology";
+
 
 // ✅ IMPORTACIONES DE ADMIN
 import AdminPanel from './components/admin/AdminPanel';
@@ -168,7 +168,7 @@ export default function App() {
             <Route path="/simulation/:id/results" element={<Results />} />
 
              <Route path="/about" element={<About />} />
-      <Route path="/methodology" element={<Methodology />} />
+     
           </Routes>
         </div>
       </main>
