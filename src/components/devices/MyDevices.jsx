@@ -1,23 +1,23 @@
 // src/components/devices/MyDevices.jsx
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
-import api from '../../services/api';
+import { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import api from "../../services/api";
 
 export default function MyDevices() {
   const [devices, setDevices] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
-  const [filter, setFilter] = useState('all');
+  const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all");
   const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDevices = async () => {
       try {
-        const response = await api.get('/devices/mine');
+        const response = await api.get("/devices/mine");
         setDevices(response.data);
       } catch (err) {
-        console.error('Error al cargar dispositivos:', err);
-        setError('No se pudieron cargar tus dispositivos');
+        console.error("Error al cargar dispositivos:", err);
+        setError("No se pudieron cargar tus dispositivos");
       } finally {
         setLoading(false);
       }
@@ -25,11 +25,9 @@ export default function MyDevices() {
     fetchDevices();
   }, []);
 
-  const filteredDevices = filter === 'all' 
-    ? devices 
-    : devices.filter(d => d.type === filter);
+  const filteredDevices =
+    filter === "all" ? devices : devices.filter((d) => d.type === filter);
 
-  // Función para eliminar un dispositivo
   const handleDelete = async (id) => {
     if (!window.confirm("¿Estás seguro de que deseas eliminar este dispositivo?")) {
       return;
@@ -37,22 +35,23 @@ export default function MyDevices() {
 
     try {
       await api.delete(`/devices/${id}`);
-      setDevices(devices.filter(d => d.id !== id));
-      alert('✅ Dispositivo eliminado correctamente.');
+      setDevices((prev) => prev.filter((d) => d.id !== id));
+      alert("✅ Dispositivo eliminado correctamente.");
     } catch (err) {
-      console.error('Error al eliminar dispositivo:', err);
-      alert('❌ No se pudo eliminar el dispositivo. Intenta nuevamente.');
+      console.error("Error al eliminar dispositivo:", err);
+      alert("❌ No se pudo eliminar el dispositivo. Intenta nuevamente.");
     }
   };
 
-  if (loading) return (
-    <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
-      <div className="text-center">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
-        <p className="mt-4">Cargando tus dispositivos...</p>
+  if (loading)
+    return (
+      <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <p className="mt-4">Cargando tus dispositivos...</p>
+        </div>
       </div>
-    </div>
-  );
+    );
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
@@ -78,7 +77,7 @@ export default function MyDevices() {
           </div>
 
           <button
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate("/dashboard")}
             className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
           >
             ← Volver al Dashboard
@@ -86,50 +85,53 @@ export default function MyDevices() {
         </div>
 
         {/* Filtros */}
-        <div className="flex gap-3 mb-6">
+        <div className="flex flex-wrap gap-3 mb-6">
           <button
-            onClick={() => setFilter('all')}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              filter === 'all'
-                ? 'bg-emerald-500 text-neutral-950'
-                : 'bg-white/5 text-white/70 hover:bg-white/10'
+            onClick={() => setFilter("all")}
+            className={`px-4 py-2 rounded-lg text-sm transition ${
+              filter === "all"
+                ? "bg-emerald-500 text-neutral-950"
+                : "bg-white/5 text-white/70 hover:bg-white/10"
             }`}
           >
             Todos ({devices.length})
           </button>
+
           <button
-            onClick={() => setFilter('telefono')}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              filter === 'telefono'
-                ? 'bg-emerald-500 text-neutral-950'
-                : 'bg-white/5 text-white/70 hover:bg-white/10'
+            onClick={() => setFilter("telefono")}
+            className={`px-4 py-2 rounded-lg text-sm transition ${
+              filter === "telefono"
+                ? "bg-emerald-500 text-neutral-950"
+                : "bg-white/5 text-white/70 hover:bg-white/10"
             }`}
           >
-            Teléfonos ({devices.filter(d => d.type === 'telefono').length})
+            Teléfonos ({devices.filter((d) => d.type === "telefono").length})
           </button>
+
           <button
-            onClick={() => setFilter('laptop')}
-            className={`px-4 py-2 rounded-lg text-sm ${
-              filter === 'laptop'
-                ? 'bg-emerald-500 text-neutral-950'
-                : 'bg-white/5 text-white/70 hover:bg-white/10'
+            onClick={() => setFilter("laptop")}
+            className={`px-4 py-2 rounded-lg text-sm transition ${
+              filter === "laptop"
+                ? "bg-emerald-500 text-neutral-950"
+                : "bg-white/5 text-white/70 hover:bg-white/10"
             }`}
           >
-            Laptops ({devices.filter(d => d.type === 'laptop').length})
+            Laptops ({devices.filter((d) => d.type === "laptop").length})
           </button>
         </div>
 
-        {/* Lista de dispositivos */}
+        {/* Lista */}
         {error ? (
           <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-red-200">
             {error}
           </div>
         ) : filteredDevices.length === 0 ? (
           <div className="text-center py-12 text-white/60">
-            No has registrado ningún dispositivo {filter !== 'all' ? `de tipo ${filter}` : ''}.
+            No has registrado ningún dispositivo{" "}
+            {filter !== "all" ? `de tipo ${filter}` : ""}.
             <br />
             <button
-              onClick={() => navigate('/dashboard')}
+              onClick={() => navigate("/dashboard")}
               className="mt-4 text-emerald-300 hover:underline"
             >
               Ir al Dashboard para subir uno
@@ -137,46 +139,63 @@ export default function MyDevices() {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-            {filteredDevices.map(device => (
+            {filteredDevices.map((device) => (
               <div
                 key={device.id}
                 className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl hover:bg-white/10 transition"
               >
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <span className="text-2xl">
-                      {device.type === 'telefono' ? '📱' : '💻'}
+                <div className="flex items-start justify-between gap-3">
+                  {/* Info */}
+                  <div className="flex items-start gap-3 min-w-0">
+                    <span className="text-2xl shrink-0">
+                      {device.type === "telefono" ? "📱" : "💻"}
                     </span>
-                    <div>
-                      <h3 className="font-semibold">{device.model}</h3>
+
+                    <div className="min-w-0">
+                      <h3 className="font-semibold truncate">{device.model}</h3>
                       <p className="text-white/60 text-sm">
-                        {device.year || 'Sin año'} • {device.type}
+                        {device.year || "Sin año"} • {device.type}
                       </p>
                       <p className="text-white/50 text-xs mt-1 truncate">
-                        {device.materials || 'Materiales no especificados'}
+                        {device.materials || "Materiales no especificados"}
                       </p>
                     </div>
                   </div>
 
-                  <div className="flex gap-2">
+                  {/* Acciones (MISMA ALTURA / MISMA ALINEACIÓN) */}
+                  <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => navigate(`/simulation/${device.id}`)}
-                      className="px-2 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-400/20 hover:bg-emerald-500/20 hover:text-emerald-100 transition"
+                      className="h-9 px-3 rounded-full text-xs font-medium
+                                 inline-flex items-center justify-center
+                                 whitespace-nowrap
+                                 bg-emerald-500/10 text-emerald-300
+                                 border border-emerald-400/20
+                                 hover:bg-emerald-500/20 hover:text-emerald-100 transition"
                     >
                       Ver simulación
                     </button>
-                    {/* ✅ Botón de eliminar */}
+
                     <button
                       onClick={() => handleDelete(device.id)}
-                      className="px-2 py-1 rounded-full text-xs bg-red-500/10 text-red-300 border border-red-400/20 hover:bg-red-500/20 hover:text-red-100 transition"
+                      title="Eliminar"
+                      aria-label="Eliminar dispositivo"
+                      className="h-9 w-9 rounded-full
+                                 inline-flex items-center justify-center
+                                 bg-red-500/10 text-red-300
+                                 border border-red-400/20
+                                 hover:bg-red-500/20 hover:text-red-100 transition"
                     >
-                      🗑️
+                      <span className="text-base leading-none">🗑️</span>
                     </button>
                   </div>
                 </div>
-                <div className="mt-3 flex justify-between items-center">
+
+                <div className="mt-4 flex justify-between items-center">
                   <span className="text-xs text-white/50">
-                    {new Date(device.created_at).toLocaleDateString()}
+                    {device.created_at
+                      ? new Date(device.created_at).toLocaleDateString()
+                      : "—"}
                   </span>
                 </div>
               </div>
