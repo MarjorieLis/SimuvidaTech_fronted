@@ -5,27 +5,51 @@ import api from '../../services/api';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+// ✅ Función robusta para obtener el nombre del usuario desde localStorage
+const getUserNameFromStorage = () => {
+  try {
+    const possibleKeys = ['user', 'userData', 'profile', 'authUser'];
+    for (const key of possibleKeys) {
+      const item = localStorage.getItem(key);
+      if (item) {
+        try {
+          const parsed = JSON.parse(item);
+          if (parsed.name) return parsed.name;
+          if (parsed.nombre) return parsed.nombre;
+          if (parsed.fullName) return parsed.fullName;
+        } catch (e) {
+          if (typeof item === 'string' && item.trim()) {
+            return item;
+          }
+        }
+      }
+    }
+    return 'Usuario registrado';
+  } catch (err) {
+    console.warn('Error al leer el nombre del usuario:', err);
+    return 'Usuario registrado';
+  }
+};
+
 export default function Results() {
   const [device, setDevice] = useState(null);
   const [impact, setImpact] = useState({ CO2: 0, agua: 0, residuos: 0, score: 0 });
   const [decisionData, setDecisionData] = useState({ uso: 'No registrada', finVida: 'No registrada' });
+  const [isCertificadoVisible, setIsCertificadoVisible] = useState(false); // Estado para controlar la visibilidad del certificado
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
 
-  // Extraer state enviado desde Simulation.jsx
+  // Extraer estado enviado desde Simulation.jsx
   const { years, decision, impact: initialImpact } = location.state || {};
 
   useEffect(() => {
     const loadData = async () => {
       try {
-        // Cargar dispositivo (solo para mostrar info, no para cálculos)
         const deviceRes = await api.get(`/devices/${id}`);
         setDevice(deviceRes.data);
 
-        // Si vienen datos del state, usarlos directamente
         if (years !== undefined && decision) {
-          // Calcular puntuación ecológica
           let score = 100;
           if (years === "1 año") score -= 20;
           else if (years === "2 años") score -= 10;
@@ -34,7 +58,6 @@ export default function Results() {
           else if (decision === "reparar") score += 10;
           else if (decision === "reciclar") score += 15;
 
-          // Asegurar que el impacto tenga las propiedades correctas
           setImpact({
             CO2: Math.round(initialImpact?.CO2 || initialImpact?.co2 || 0),
             agua: Math.round(initialImpact?.agua || initialImpact?.water || 0),
@@ -55,7 +78,6 @@ export default function Results() {
     loadData();
   }, [id, navigate, location.state]);
 
-  // ✅ CORRECCIÓN CLAVE: normalizar decisión para evitar fallos
   const getRecommendations = () => {
     const finVida = (decisionData.finVida || '').toLowerCase().trim();
 
@@ -69,7 +91,7 @@ export default function Results() {
       case "donar":
         return [
           "✅ ¡Excelente decisión! Donar extiende la vida útil del dispositivo.",
-          "📍 Busca centros de acopio para donación en Loja (Fundación Manos Unidas, etc.).",
+          "📍 Entrega tu dispositivo en el Punto Verde UIDE - Campus Loja.",
           "📱 Asegúrate de borrar todos tus datos antes de entregarlo."
         ];
       case "reciclar":
@@ -176,7 +198,55 @@ export default function Results() {
     }
   };
 
-  // Si aún no hay dispositivo, muestra carga
+  const handleConfirmCommitment = () => {
+    const userName = getUserNameFromStorage();
+    const certContent = `
+      <div style="max-width: 800px; margin: 0 auto; padding: 40px; font-family: Arial, sans-serif; background: white; color: black;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1 style="color: #047857; font-size: 28px;">CERTIFICADO DE COMPROMISO DE DISPOSICIÓN RESPONSABLE DE RAEE</h1>
+          <p style="font-size: 16px; color: #1f2937;">Universidad Internacional del Ecuador – UIDE</p>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <p><strong>Nombre del usuario:</strong> ${userName}</p>
+          <p><strong>Dispositivo:</strong> ${device.type} - ${device.model}</p>
+          <p><strong>Fecha y hora de compromiso:</strong> ${new Date().toLocaleString('es-EC')}</p>
+          <p><strong>Lugar:</strong> UIDE – Campus Loja (Piloto)</p>
+        </div>
+        
+        <div style="background: #fef9f7; border-left: 4px solid #dc2626; padding: 16px; margin: 24px 0; font-size: 14px; color: #991b1b;">
+          ⚠️ <strong>Nota importante:</strong> Este certificado confirma tu <strong>intención de entregar</strong> el dispositivo en el Punto Verde UIDE.  
+          La entrega física es responsabilidad del usuario y no es verificada por el sistema.
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+          <button onclick="window.print()" style="background: #047857; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
+            🖨️ Imprimir certificado de compromiso
+          </button>
+        </div>
+      </div>
+    `;
+
+    const certWindow = window.open('', '_blank', 'width=800,height=600');
+    certWindow.document.write(`
+      <!DOCTYPE html>
+      <html>
+        <head>
+          <title>Certificado UIDE</title>
+          <style>
+            body { margin: 0; padding: 20px; background: #f8fafc; }
+            @media print {
+              body { background: white; }
+            }
+          </style>
+        </head>
+        <body>${certContent}</body>
+      </html>
+    `);
+    certWindow.document.close();
+    setIsCertificadoVisible(true); // Activamos la visibilidad del certificado
+  };
+
   if (!device) {
     return (
       <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
@@ -223,7 +293,7 @@ export default function Results() {
           {/* Panel izquierdo: decisiones y recomendaciones */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <h2 className="text-2xl font-semibold mb-6">🎯 Tus decisiones</h2>
-            
+
             <div className="space-y-5">
               <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl p-4">
                 <h3 className="font-medium text-emerald-200">Etapa 3: Uso</h3>
@@ -258,48 +328,76 @@ export default function Results() {
               </button>
             </div>
 
-            {/* Mapa de reciclaje en Loja (solo si eligió "reciclar") */}
-            {decisionData.finVida === 'reciclar' && (
+            {/* ✅ PUNTO VERDE UIDE - CON DIRECCIÓN EXACTA */}
+            {(decisionData.finVida === 'reciclar' || decisionData.finVida === 'donar') && (
               <div className="mt-8 bg-white/5 rounded-2xl p-6 border border-white/20">
-                <h3 className="text-xl font-semibold mb-4">📍 Puntos de reciclaje en Loja</h3>
-                <p className="text-white/70 mb-4">
-                  Lleva tu dispositivo a uno de estos centros autorizados:
-                </p>
-                
-                <div className="space-y-3 mb-6">
-                  <div className="flex items-start gap-3">
-                    <span className="text-xl">🏢</span>
-                    <div>
-                      <div className="font-medium">Fundación Manos Unidas</div>
-                      <div className="text-sm text-white/60">Calle Bolívar y Sucre</div>
-                    </div>
+                <h3 className="text-xl font-semibold mb-4">📍 Punto Verde UIDE – Campus Loja</h3>
+
+                <div className="mb-4 p-3 bg-emerald-500/10 rounded-lg">
+                  <p className="font-medium text-emerald-300">✅ ¡Tu decisión tiene impacto real!</p>
+                  <p>Elige entregar tu dispositivo en nuestro punto verde institucional.</p>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                  <div>
+                    <h4 className="font-semibold text-emerald-300 mb-2">✅ Aceptamos:</h4>
+                    <ul className="text-sm space-y-1">
+                      <li>• Laptops y computadoras</li>
+                      <li>• Teléfonos móviles</li>
+                      <li>• Cargadores y cables</li>
+                      <li>• Periféricos (teclados, mouse)</li>
+                    </ul>
                   </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <span className="text-xl">🔄</span>
-                    <div>
-                      <div className="font-medium">Recicla Loja</div>
-                      <div className="text-sm text-white/60">Av. Universitaria</div>
-                    </div>
-                  </div>
-                  
-                  <div className="flex items-start gap-3">
-                    <span className="text-xl">🌱</span>
-                    <div>
-                      <div className="font-medium">Punto Ecológico Municipal</div>
-                      <div className="text-sm text-white/60">Parque La Tebaida</div>
-                    </div>
+                  <div>
+                    <h4 className="font-semibold text-red-300 mb-2">❌ No aceptamos:</h4>
+                    <ul className="text-sm space-y-1">
+                      <li>• Baterías sueltas</li>
+                      <li>• Electrodomésticos grandes</li>
+                      <li>• Pantallas rotas (solo en campañas especiales)</li>
+                    </ul>
                   </div>
                 </div>
 
-                <iframe
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3989.546225422148!2d-79.20753312485555!3d-3.992585242357395!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x91d54c1a0b0b0b0b%3A0x1a0b0b0b0b0b0b0b!2sLoja%2C%20Ecuador!5e0!3m2!1sen!2sus!4v1706283600000!5m2!1sen!2sus"                  width="100%"
-                  height="250"
-                  style={{ border: 0, borderRadius: '12px' }}
-                  allowFullScreen=""
-                  loading="lazy"
-                  referrerPolicy="no-referrer-when-downgrade"
-                ></iframe>
+                <div className="mb-4 p-3 bg-blue-500/10 rounded-lg">
+                  <h4 className="font-semibold text-blue-300 mb-1">🕒 Horarios piloto:</h4>
+                  <p className="text-sm">Lunes a viernes: 8:00 – 17:00</p>
+                  <p className="text-sm">Ubicación: Edificio Central, Planta Baja</p>
+                </div>
+
+                <a
+                  href="https://www.google.com/maps?q=-3.9721021,-79.1991272"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 text-neutral-950 rounded-lg hover:bg-emerald-600 transition"
+                >
+                  🗺️ Cómo llegar a UIDE – Campus Loja
+                </a>
+              </div>
+            )}
+
+            {/* ✅ BOTÓN DE COMPROMISO (NO DE ENTREGA FÍSICA) */}
+            {(decisionData.finVida === 'reciclar' || decisionData.finVida === 'donar') && (
+              <div className="mt-6 pt-6 border-t border-white/20">
+                <button
+                  onClick={handleConfirmCommitment}
+                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-600 transition"
+                >
+                  ✅ Declarar mi intención de entregar en Punto Verde UIDE
+                </button>
+              </div>
+            )}
+
+            {/* ✅ CAMPAÑA DE DONACIÓN INSTITUCIONAL */}
+            {(decisionData.finVida === 'reciclar' || decisionData.finVida === 'donar') && (
+              <div className="mt-8 p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-400/30">
+                <h3 className="font-semibold text-purple-300 mb-2">📣 ¡Únete a nuestra campaña!</h3>
+                <p className="text-sm">
+                  ¿Tienes más dispositivos para donar?  
+                  <br />
+                  <strong>UIDE organiza campañas mensuales</strong> de recolección de RAEE.  
+                  <br />
+                  Sigue nuestras redes para enterarte de la próxima fecha.
+                </p>
               </div>
             )}
           </div>
@@ -307,7 +405,7 @@ export default function Results() {
           {/* Panel derecho: impacto final */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <h2 className="text-2xl font-semibold mb-6">📈 Impacto ambiental final</h2>
-            
+
             <div className="h-64 min-h-[16rem]">
               <ResponsiveContainer width="100%" height="100%">
                 <BarChart data={[

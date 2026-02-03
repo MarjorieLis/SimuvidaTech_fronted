@@ -43,12 +43,12 @@ export default function Simulation() {
     const co2 = parseFloat((baseCo2 * (5 / years)).toFixed(2)) || 0;
     const water = parseFloat((baseWater * (5 / years)).toFixed(2)) || 0;
     const raee = decision === 'reciclar' 
-  ? baseRaee * 0.2 
-  : decision === 'donar' 
-    ? baseRaee * 0.5 
-    : decision === 'reparar'
-      ? baseRaee * 0.3  // Reparar reduce residuos, pero no tanto como reciclar
-      : baseRaee; // tirar
+      ? baseRaee * 0.2 
+      : decision === 'donar' 
+        ? baseRaee * 0.5 
+        : decision === 'reparar'
+          ? baseRaee * 0.3
+          : baseRaee;
 
     setImpact({ co2, water, raee });
   };
@@ -90,6 +90,7 @@ export default function Simulation() {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-emerald-900/20 to-cyan-900/10 p-4">
+      {/* ✅ STEPPER INTERACTIVO */}
       <div className="max-w-4xl mx-auto mb-8">
         <div className="flex justify-between mb-2">
           {stages.map((stage, index) => (
@@ -102,7 +103,12 @@ export default function Simulation() {
                 color: index <= currentStage ? '#4ade80' : '#64748b'
               }}
               transition={{ duration: 0.3 }}
-              className="flex flex-col items-center"
+              className="flex flex-col items-center cursor-pointer"
+              onClick={() => {
+                if (index < currentStage) {
+                  setCurrentStage(index);
+                }
+              }}
             >
               <span className="text-2xl">{stage.icon}</span>
               <span className="text-sm mt-1">{stage.name}</span>
@@ -153,31 +159,31 @@ export default function Simulation() {
             {currentStage === 4 && (
               <div className="space-y-4">
                 <p className="text-white/80">¿Qué harás al final de su vida útil?</p>
-               <div className="grid grid-cols-4 gap-3">
-  {[
-    { id: 'tirar', label: 'Tirar', icon: '🗑️', color: 'bg-red-500/20', borderColor: 'border-red-500' },
-    { id: 'donar', label: 'Donar', icon: '🎁', color: 'bg-yellow-500/20', borderColor: 'border-yellow-500' },
-    { id: 'reparar', label: 'Reparar', icon: '🔧', color: 'bg-blue-500/20', borderColor: 'border-blue-500' },
-    { id: 'reciclar', label: 'Reciclar', icon: '♻️', color: 'bg-green-500/20', borderColor: 'border-green-500' }
-  ].map(option => (
-    <button
-      key={option.id}
-      onClick={() => {
-        const cleanDecision = option.id.trim().toLowerCase();
-        setEndOfLifeDecision(cleanDecision);
-        calculateImpact(yearsOfUse, cleanDecision);
-      }}
-      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center
-        ${endOfLifeDecision === option.id.toLowerCase()
-          ? `${option.borderColor} bg-emerald-500/30`
-          : 'border-white/20 hover:border-white/40'
-        } ${option.color}`}
-    >
-      <div className="text-3xl mb-2">{option.icon}</div>
-      <div className="text-sm font-medium text-center">{option.label}</div>
-    </button>
-  ))}
-</div>
+                <div className="grid grid-cols-4 gap-3">
+                  {[
+                    { id: 'tirar', label: 'Tirar', icon: '🗑️', color: 'bg-red-500/20' },
+                    { id: 'donar', label: 'Donar', icon: '🎁', color: 'bg-yellow-500/20' },
+                    { id: 'reparar', label: 'Reparar', icon: '🔧', color: 'bg-blue-500/20' },
+                    { id: 'reciclar', label: 'Reciclar', icon: '♻️', color: 'bg-green-500/20' }
+                  ].map(option => (
+                    <button
+                      key={option.id}
+                      onClick={() => {
+                        const cleanDecision = option.id.trim().toLowerCase();
+                        setEndOfLifeDecision(cleanDecision);
+                        calculateImpact(yearsOfUse, cleanDecision);
+                      }}
+                      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center justify-center
+                        ${endOfLifeDecision === option.id.toLowerCase()
+                          ? 'border-emerald-500 bg-emerald-500/30'
+                          : 'border-white/20 hover:border-white/40'
+                        } ${option.color}`}
+                    >
+                      <div className="text-3xl mb-2">{option.icon}</div>
+                      <div className="text-sm font-medium text-center">{option.label}</div>
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
 
@@ -193,7 +199,6 @@ export default function Simulation() {
                 <div className="grid grid-cols-3 gap-2 text-sm">
                   <div className="bg-green-500/10 p-2 rounded">CO₂: {impact.co2} kg</div>
                   <div className="bg-blue-500/10 p-2 rounded">Agua: {impact.water} L</div>
-                  {/* ✅ CORRECCIÓN: evitar .toFixed() en undefined */}
                   <div className="bg-yellow-500/10 p-2 rounded">RAEE: {(Number(impact.raee) || 0).toFixed(2)} kg</div>
                 </div>
               </div>
