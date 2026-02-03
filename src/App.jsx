@@ -58,38 +58,58 @@ export default function App() {
           </Link>
 
           <div className="flex items-center gap-2">
-            {!authenticated ? (
-              <Link
-                to="/register"
-                className={[
-                  "px-4 py-1.5 rounded-full text-sm transition border",
-                  isRegister
-                    ? "bg-emerald-500/25 text-emerald-100 border-emerald-400/35"
-                    : "bg-emerald-500/15 text-emerald-200 border-emerald-400/25 hover:bg-emerald-500/25",
-                ].join(" ")}
-              >
-                Registrarse
-              </Link>
-            ) : (
-              <>
-                <span className="hidden sm:block text-sm text-white/70">
-                  Hola{user?.name ? `, ${user.name}` : ""}
-                </span>
-                <Link
-                  to="/dashboard"
-                  className="px-4 py-1.5 rounded-full text-sm transition bg-white/5 border border-white/10 text-white/80 hover:text-white hover:bg-white/10"
-                >
-                  Dashboard
-                </Link>
-                <button
-                  onClick={handleLogout}
-                  className="px-4 py-1.5 rounded-full text-sm transition bg-red-500/10 border border-red-400/30 text-red-300 hover:bg-red-500/20 hover:text-red-200"
-                >
-                  Cerrar sesión
-                </button>
-              </>
-            )}
-          </div>
+  {!authenticated ? (
+    <>
+      {/* 🔑 Iniciar sesión (secundario) */}
+      <Link
+        to="/login"
+        className="px-4 py-1.5 rounded-full text-sm font-medium 
+                   border border-white/15 text-white/70
+                   hover:bg-white/[0.06] hover:text-white transition"
+      >
+        Iniciar sesión
+      </Link>
+
+      {/* 🚀 Registrarse (CTA principal) */}
+      <Link
+        to="/register"
+        className={[
+          "px-4 py-1.5 rounded-full text-sm font-semibold transition border",
+          isRegister
+            ? "bg-emerald-500/25 text-emerald-100 border-emerald-400/35"
+            : "bg-emerald-500 text-neutral-950 border-emerald-400/40 hover:opacity-90 shadow-md",
+        ].join(" ")}
+      >
+        Registrarse
+      </Link>
+    </>
+  ) : (
+    <>
+      <span className="hidden sm:block text-sm text-white/70">
+        Hola{user?.name ? `, ${user.name}` : ""}
+      </span>
+
+      <Link
+        to="/dashboard"
+        className="px-4 py-1.5 rounded-full text-sm transition 
+                   bg-white/5 border border-white/10 
+                   text-white/80 hover:text-white hover:bg-white/10"
+      >
+        Dashboard
+      </Link>
+
+      <button
+        onClick={handleLogout}
+        className="px-4 py-1.5 rounded-full text-sm transition 
+                   bg-red-500/10 border border-red-400/30 
+                   text-red-300 hover:bg-red-500/20 hover:text-red-200"
+      >
+        Cerrar sesión
+      </button>
+    </>
+  )}
+</div>
+
         </div>
       </nav>
 
