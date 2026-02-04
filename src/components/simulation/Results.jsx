@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams, useLocation } from 'react-router-dom';
-import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
-import api from '../../services/api';
-import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
+// src/components/simulation/Results.jsx
+import { useState, useEffect, useMemo, useRef } from "react";
+import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import api from "../../services/api";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
-// ✅ Función robusta para obtener el nombre del usuario desde localStorage
+/* ✅ Función robusta para obtener el nombre del usuario desde localStorage */
 const getUserNameFromStorage = () => {
   try {
-    const possibleKeys = ['user', 'userData', 'profile', 'authUser'];
+    const possibleKeys = ["user", "userData", "profile", "authUser"];
     for (const key of possibleKeys) {
       const item = localStorage.getItem(key);
       if (item) {
@@ -18,29 +19,97 @@ const getUserNameFromStorage = () => {
           if (parsed.nombre) return parsed.nombre;
           if (parsed.fullName) return parsed.fullName;
         } catch (e) {
-          if (typeof item === 'string' && item.trim()) {
-            return item;
-          }
+          if (typeof item === "string" && item.trim()) return item;
         }
       }
     }
-    return 'Usuario registrado';
+    return "Usuario registrado";
   } catch (err) {
-    console.warn('Error al leer el nombre del usuario:', err);
-    return 'Usuario registrado';
+    console.warn("Error al leer el nombre del usuario:", err);
+    return "Usuario registrado";
   }
 };
+
+/* ✅ UI helpers (mismo estilo del Home/Dashboard) */
+function Card({ className = "", children }) {
+  return (
+    <div
+      className={[
+        "rounded-3xl border border-white/10 bg-white/[0.04] backdrop-blur-xl",
+        "shadow-[0_18px_60px_rgba(0,0,0,0.35)]",
+        className,
+      ].join(" ")}
+    >
+      {children}
+    </div>
+  );
+}
+
+function ButtonPrimary({ className = "", children, ...props }) {
+  return (
+    <button
+      {...props}
+      className={[
+        "inline-flex items-center justify-center gap-2 w-full",
+        "rounded-xl font-semibold py-3 px-6",
+        "bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950",
+        "hover:from-emerald-400 hover:to-emerald-500",
+        "shadow-lg shadow-emerald-500/25 transition",
+        className,
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function ButtonGhost({ className = "", children, ...props }) {
+  return (
+    <button
+      {...props}
+      className={[
+        "inline-flex items-center justify-center gap-2",
+        "px-4 py-2 rounded-full text-sm font-semibold",
+        "bg-white/[0.04] border border-white/10 text-white/80",
+        "hover:bg-white/[0.06] hover:text-white transition",
+        className,
+      ].join(" ")}
+    >
+      {children}
+    </button>
+  );
+}
+
+function Pill({ className = "", children }) {
+  return (
+    <span
+      className={[
+        "inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-medium border",
+        "bg-white/[0.04] border-white/10 text-white/70",
+        className,
+      ].join(" ")}
+    >
+      {children}
+    </span>
+  );
+}
 
 export default function Results() {
   const [device, setDevice] = useState(null);
   const [impact, setImpact] = useState({ CO2: 0, agua: 0, residuos: 0, score: 0 });
-  const [decisionData, setDecisionData] = useState({ uso: 'No registrada', finVida: 'No registrada' });
-  const [isCertificadoVisible, setIsCertificadoVisible] = useState(false); // Estado para controlar la visibilidad del certificado
+  const [decisionData, setDecisionData] = useState({ uso: "No registrada", finVida: "No registrada" });
+
+  // ✅ certificado dentro de la página
+  const [certData, setCertData] = useState(null);
+
+  // ✅ refs separados: uno para scroll, otro para capturar PDF
+  const certScrollRef = useRef(null);
+  const certCaptureRef = useRef(null);
+
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
 
-  // Extraer estado enviado desde Simulation.jsx
   const { years, decision, impact: initialImpact } = location.state || {};
 
   useEffect(() => {
@@ -57,106 +126,135 @@ export default function Results() {
           if (decision === "tirar") score -= 30;
           else if (decision === "reparar") score += 10;
           else if (decision === "reciclar") score += 15;
+          else if (decision === "donar") score += 12;
 
           setImpact({
             CO2: Math.round(initialImpact?.CO2 || initialImpact?.co2 || 0),
             agua: Math.round(initialImpact?.agua || initialImpact?.water || 0),
             residuos: Math.round(initialImpact?.residuos || initialImpact?.raee || 0),
-            score: Math.max(20, Math.min(100, Math.round(score)))
+            score: Math.max(20, Math.min(100, Math.round(score))),
           });
 
-          setDecisionData({
-            uso: years,
-            finVida: decision
-          });
+          setDecisionData({ uso: years, finVida: decision });
         }
       } catch (err) {
-        console.error('Error al cargar datos:', err);
-        navigate('/dashboard');
+        console.error("Error al cargar datos:", err);
+        navigate("/dashboard");
       }
     };
     loadData();
-  }, [id, navigate, location.state]);
+  }, [id, navigate, location.state, years, decision, initialImpact]);
+
+  const finVidaNormalized = useMemo(
+    () => (decisionData.finVida || "").toLowerCase().trim(),
+    [decisionData.finVida]
+  );
+
+  const showPuntoVerde = finVidaNormalized === "reciclar" || finVidaNormalized === "donar";
 
   const getRecommendations = () => {
-    const finVida = (decisionData.finVida || '').toLowerCase().trim();
-
-    switch (finVida) {
+    switch (finVidaNormalized) {
       case "tirar":
         return [
           "💡 Considera donar tu dispositivo. ¡Puede seguir siendo útil!",
           "♻️ Busca puntos de reciclaje autorizados en tu ciudad.",
-          "🔋 Retira la batería antes de desechar. Es un residuo peligroso."
+          "🔋 Retira la batería antes de desechar. Es un residuo peligroso.",
         ];
       case "donar":
         return [
           "✅ ¡Excelente decisión! Donar extiende la vida útil del dispositivo.",
           "📍 Entrega tu dispositivo en el Punto Verde UIDE - Campus Loja.",
-          "📱 Asegúrate de borrar todos tus datos antes de entregarlo."
+          "📱 Asegúrate de borrar todos tus datos antes de entregarlo.",
         ];
       case "reciclar":
         return [
           "✅ ¡Excelente decisión! El reciclaje reduce hasta el 80% de emisiones.",
           "📱 Guarda tus datos en la nube antes de entregar el dispositivo.",
-          "🌍 Comparte esta acción en redes para inspirar a otros."
+          "Comparte esta acción en redes para inspirar a otros.",
         ];
       case "reparar":
         return [
           "🛠️ Reparar extiende la vida útil y reduce la demanda de nuevos recursos.",
           "🔧 Busca técnicos certificados para una reparación segura.",
-          "❤️ Cada reparación evita ~50 kg de residuos electrónicos."
+          "❤️ C reparación evita residuos electrónicos innecesarios.",
         ];
       default:
         return [];
     }
   };
 
+  // ✅ Informe PDF con diseño más "premium"
   const handleDownloadPDF = async () => {
     if (!device) return;
 
-    const pdfContent = document.createElement('div');
-    pdfContent.style.width = '800px';
-    pdfContent.style.padding = '40px';
-    pdfContent.style.fontFamily = 'Arial, sans-serif';
-    pdfContent.style.backgroundColor = 'white';
-    pdfContent.style.color = 'black';
-    pdfContent.style.fontSize = '14px';
+    const recommendations = getRecommendations();
+
+    const pdfContent = document.createElement("div");
+    pdfContent.style.width = "860px";
+    pdfContent.style.padding = "34px";
+    pdfContent.style.fontFamily = "Inter, Arial, sans-serif";
+    pdfContent.style.background = "#ffffff";
+    pdfContent.style.color = "#0f172a";
+    pdfContent.style.borderRadius = "18px";
+
+    const badge = (label, value) => `
+      <div style="display:inline-flex; gap:10px; align-items:center; padding:10px 14px; border-radius:999px; border:1px solid #e5e7eb; background:#f8fafc; font-size:12px;">
+        <span style="color:#0f766e; font-weight:700;">${label}</span>
+        <span style="color:#0f172a; font-weight:700;">${value}</span>
+      </div>
+    `;
 
     pdfContent.innerHTML = `
-      <div style="text-align: center; margin-bottom: 30px;">
-        <h1 style="color: #047857; font-size: 28px;">SimuVidaTech</h1>
-        <p style="font-size: 16px; color: #1f2937;">Informe de Impacto Ambiental</p>
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:18px; padding:18px 18px 14px; border-radius:16px; background:linear-gradient(135deg,#ecfdf5,#cffafe); border:1px solid #d1fae5;">
+        <div>
+          <div style="font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:#065f46; font-weight:700;">SimuVidaTech</div>
+          <div style="margin-top:6px; font-size:26px; font-weight:800; color:#064e3b;">Informe de Impacto Ambiental</div>
+          <div style="margin-top:6px; font-size:13px; color:#334155;">Resultados estimados • Uso educativo</div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:12px; color:#0f766e; font-weight:700;">Puntuación ecológica</div>
+          <div style="margin-top:6px; font-size:28px; font-weight:900; color:#047857;">${impact.score}<span style="font-size:16px; color:#64748b;">/100</span></div>
+        </div>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Dispositivo</h2>
-        <p><strong>Tipo:</strong> ${device.type}</p>
-        <p><strong>Modelo:</strong> ${device.model}</p>
-        <p><strong>Año:</strong> ${device.year || 'No especificado'}</p>
+      <div style="margin-top:16px; display:flex; gap:10px; flex-wrap:wrap;">
+        ${badge("CO₂", `${impact.CO2} kg`)}
+        ${badge("Agua", `${impact.agua} L`)}
+        ${badge("RAEE", `${impact.residuos} kg`)}
+        ${badge("Fin de vida", `${decisionData.finVida}`)}
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Decisiones Tomadas</h2>
-        <p><strong>Uso:</strong> ${decisionData.uso}</p>
-        <p><strong>Fin de vida:</strong> ${decisionData.finVida}</p>
+      <div style="margin-top:18px; display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
+        <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px;">
+          <div style="font-size:13px; font-weight:800; color:#064e3b; margin-bottom:10px;">Dispositivo</div>
+          <div style="font-size:13px; line-height:1.7;">
+            <div><b>Tipo:</b> ${device.type}</div>
+            <div><b>Modelo:</b> ${device.model}</div>
+            <div><b>Año:</b> ${device.year || "No especificado"}</div>
+          </div>
+        </div>
+
+        <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px;">
+          <div style="font-size:13px; font-weight:800; color:#064e3b; margin-bottom:10px;">Decisiones</div>
+          <div style="font-size:13px; line-height:1.7;">
+            <div><b>Uso:</b> ${decisionData.uso}</div>
+            <div><b>Fin de vida:</b> ${decisionData.finVida}</div>
+          </div>
+        </div>
       </div>
 
-      <div style="margin-bottom: 20px;">
-        <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Impacto Ambiental</h2>
-        <p><strong>CO₂:</strong> ${impact.CO2} kg</p>
-        <p><strong>Agua:</strong> ${impact.agua} L</p>
-        <p><strong>Residuos:</strong> ${impact.residuos} kg</p>
-        <p><strong>Puntuación ecológica:</strong> ${impact.score}/100</p>
+      <div style="margin-top:14px; border:1px solid #e5e7eb; border-radius:16px; padding:16px;">
+        <div style="font-size:13px; font-weight:800; color:#064e3b; margin-bottom:10px;">Recomendaciones</div>
+        ${
+          recommendations.length
+            ? `<ul style="margin:0; padding-left:18px; font-size:13px; color:#0f172a; line-height:1.7;">
+                ${recommendations.map((r) => `<li style="margin:6px 0;">${r}</li>`).join("")}
+              </ul>`
+            : `<div style="font-size:13px; color:#64748b;">No hay recomendaciones disponibles para este escenario.</div>`
+        }
       </div>
 
-      <div>
-        <h2 style="color: #047857; border-bottom: 2px solid #047857; padding-bottom: 8px;">Recomendaciones</h2>
-        <ul style="padding-left: 20px;">
-          ${getRecommendations().map(rec => `<li>${rec}</li>`).join('')}
-        </ul>
-      </div>
-
-      <div style="margin-top: 40px; text-align: center; font-size: 12px; color: #6b7280;">
+      <div style="margin-top:18px; text-align:center; font-size:12px; color:#64748b;">
         © 2026 SimuVidaTech — Educar para proteger nuestro planeta.
       </div>
     `;
@@ -167,91 +265,105 @@ export default function Results() {
       const canvas = await html2canvas(pdfContent, {
         scale: 2,
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: "#ffffff",
       });
 
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF('p', 'mm', 'a4');
-      const imgWidth = 210;
-      const pageHeight = 297;
-      const imgHeight = (canvas.height * imgWidth) / canvas.width;
-      let heightLeft = imgHeight;
-      let position = 0;
+      const imgData = canvas.toDataURL("image/png");
+      const pdf = new jsPDF("p", "mm", "a4");
+      const pageW = 210;
+      const pageH = 297;
+      const margin = 8;
 
-      pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-      heightLeft -= pageHeight;
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
 
-      while (heightLeft >= 0) {
-        position = heightLeft - imgHeight;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
-        heightLeft -= pageHeight;
-      }
+      const imgW = maxW;
+      const imgH = (canvas.height * imgW) / canvas.width;
 
-      const cleanModel = device.model.replace(/\s+/g, '_').replace(/[^a-zA-Z0-9_]/g, '');
+      const finalH = imgH > maxH ? maxH : imgH;
+      const finalW = imgH > maxH ? (canvas.width * finalH) / canvas.height : imgW;
+
+      const x = (pageW - finalW) / 2;
+      const y = (pageH - finalH) / 2;
+
+      pdf.addImage(imgData, "PNG", x, y, finalW, finalH);
+
+      const cleanModel = device.model.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
       pdf.save(`simuvidatech_${device.type}_${cleanModel}.pdf`);
     } catch (err) {
-      console.error('Error al generar PDF:', err);
-      alert('❌ Error al generar el PDF. Intenta nuevamente.');
+      console.error("Error al generar PDF:", err);
+      alert("❌ Error al generar el PDF. Intenta nuevamente.");
     } finally {
       document.body.removeChild(pdfContent);
     }
   };
 
+  // ✅ Generar certificado dentro de la misma vista
   const handleConfirmCommitment = () => {
-    const userName = getUserNameFromStorage();
-    const certContent = `
-      <div style="max-width: 800px; margin: 0 auto; padding: 40px; font-family: Arial, sans-serif; background: white; color: black;">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h1 style="color: #047857; font-size: 28px;">CERTIFICADO DE COMPROMISO DE DISPOSICIÓN RESPONSABLE DE RAEE</h1>
-          <p style="font-size: 16px; color: #1f2937;">Universidad Internacional del Ecuador – UIDE</p>
-        </div>
-        
-        <div style="margin-bottom: 20px;">
-          <p><strong>Nombre del usuario:</strong> ${userName}</p>
-          <p><strong>Dispositivo:</strong> ${device.type} - ${device.model}</p>
-          <p><strong>Fecha y hora de compromiso:</strong> ${new Date().toLocaleString('es-EC')}</p>
-          <p><strong>Lugar:</strong> UIDE – Campus Loja (Piloto)</p>
-        </div>
-        
-        <div style="background: #fef9f7; border-left: 4px solid #dc2626; padding: 16px; margin: 24px 0; font-size: 14px; color: #991b1b;">
-          ⚠️ <strong>Nota importante:</strong> Este certificado confirma tu <strong>intención de entregar</strong> el dispositivo en el Punto Verde UIDE.  
-          La entrega física es responsabilidad del usuario y no es verificada por el sistema.
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px;">
-          <button onclick="window.print()" style="background: #047857; color: white; padding: 12px 24px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold;">
-            🖨️ Imprimir certificado de compromiso
-          </button>
-        </div>
-      </div>
-    `;
+    if (!device) return;
 
-    const certWindow = window.open('', '_blank', 'width=800,height=600');
-    certWindow.document.write(`
-      <!DOCTYPE html>
-      <html>
-        <head>
-          <title>Certificado UIDE</title>
-          <style>
-            body { margin: 0; padding: 20px; background: #f8fafc; }
-            @media print {
-              body { background: white; }
-            }
-          </style>
-        </head>
-        <body>${certContent}</body>
-      </html>
-    `);
-    certWindow.document.close();
-    setIsCertificadoVisible(true); // Activamos la visibilidad del certificado
+    const userName = getUserNameFromStorage();
+    const now = new Date();
+
+    setCertData({
+      userName,
+      device: `${device.type} - ${device.model}`,
+      dateTime: now.toLocaleString("es-EC"),
+      place: "UIDE – Campus Loja (Piloto)",
+      code: `UIDE-RAEE-${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}${String(
+        now.getDate()
+      ).padStart(2, "0")}-${Math.random().toString(16).slice(2, 8).toUpperCase()}`,
+    });
+
+    setTimeout(() => {
+      certScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 200);
+  };
+
+  const handleDownloadCertificatePDF = async () => {
+    if (!certCaptureRef.current || !device) return;
+
+    try {
+      const canvas = await html2canvas(certCaptureRef.current, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: "#ffffff",
+      });
+
+      const imgData = canvas.toDataURL("image/png");
+      // ✅ CAMBIO 2: Orientación horizontal (landscape)
+      const pdf = new jsPDF("l", "mm", "a4");
+
+      // ✅ Menos margen para que sea "full page"
+      const pageW = 297; // Ancho en orientación horizontal
+      const pageH = 210; // Alto en orientación horizontal
+      const margin = 4;
+
+      const maxW = pageW - margin * 2;
+      const maxH = pageH - margin * 2;
+
+      const imgW = maxW;
+      const imgH = (canvas.height * imgW) / canvas.width;
+
+      const finalH = imgH > maxH ? maxH : imgH;
+      const finalW = imgH > maxH ? (canvas.width * finalH) / canvas.height : imgW;
+
+      const x = (pageW - finalW) / 2;
+      const y = (pageH - finalH) / 2;
+
+      pdf.addImage(imgData, "PNG", x, y, finalW, finalH);
+      pdf.save(`certificado_raee_${device.model.replace(/\s+/g, "_")}.pdf`);
+    } catch (err) {
+      console.error("Error certificado PDF:", err);
+      alert("❌ No se pudo generar el certificado. Intenta nuevamente.");
+    }
   };
 
   if (!device) {
     return (
       <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
         <div className="text-center">
-          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto"></div>
+          <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto" />
           <p className="mt-4">Cargando resultados...</p>
         </div>
       </div>
@@ -270,6 +382,7 @@ export default function Results() {
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4 py-12">
+        {/* header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <p className="text-sm text-emerald-200/90 font-medium">Simulación completada</p>
@@ -279,168 +392,318 @@ export default function Results() {
             <p className="mt-2 text-white/65 max-w-2xl">
               Tu {device.type} <strong>{device.model}</strong> ha sido evaluado.
             </p>
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              <Pill className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200">
+                🌿 CO₂: <b className="text-white/90">{impact.CO2}</b> kg
+              </Pill>
+              <Pill className="border-cyan-400/20 bg-cyan-500/10 text-cyan-200">
+                💧 Agua: <b className="text-white/90">{impact.agua}</b> L
+              </Pill>
+              <Pill className="border-lime-400/20 bg-lime-500/10 text-lime-200">
+                ♻️ RAEE: <b className="text-white/90">{impact.residuos}</b> kg
+              </Pill>
+            </div>
           </div>
 
-          <button
-            onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
-          >
-            ← Volver al Dashboard
-          </button>
+          <ButtonGhost onClick={() => navigate("/dashboard")}>← Volver al Dashboard</ButtonGhost>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Panel izquierdo: decisiones y recomendaciones */}
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
+          {/* izquierda */}
+          <Card className="p-8">
             <h2 className="text-2xl font-semibold mb-6">🎯 Tus decisiones</h2>
 
             <div className="space-y-5">
-              <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl p-4">
+              <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-4">
                 <h3 className="font-medium text-emerald-200">Etapa 3: Uso</h3>
-                <p className="mt-2 text-white/80">{decisionData.uso}</p>
+                <p className="mt-2 text-white/85">{decisionData.uso}</p>
               </div>
 
-              <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-xl p-4">
+              <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-4">
                 <h3 className="font-medium text-emerald-200">Etapa 5: Fin de vida</h3>
-                <p className="mt-2 text-white/80">{decisionData.finVida}</p>
+                <p className="mt-2 text-white/85">{decisionData.finVida}</p>
               </div>
             </div>
 
             <div className="mt-8">
               <h3 className="font-semibold text-lg mb-3">💡 Recomendaciones personalizadas</h3>
-              <ul className="text-sm space-y-2">
+              <ul className="text-sm space-y-2 text-white/75">
                 {getRecommendations().map((rec, i) => (
                   <li key={i} className="flex items-start gap-2">
-                    <span className="text-emerald-400 mt-0.5">•</span>
-                    <span>{rec}</span>
+                    <span className="mt-1 h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
+                    <span className="leading-relaxed">{rec}</span>
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Botón PDF */}
             <div className="mt-8 pt-6 border-t border-white/10">
-              <button
-                onClick={handleDownloadPDF}
-                className="w-full rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition"
-              >
-                📄 Descargar informe completo
-              </button>
+              <ButtonPrimary onClick={handleDownloadPDF}>📄 Descargar informe completo</ButtonPrimary>
+              <p className="mt-2 text-xs text-white/45">Resultados estimados con fines educativos.</p>
             </div>
 
-            {/* ✅ PUNTO VERDE UIDE - CON DIRECCIÓN EXACTA */}
-            {(decisionData.finVida === 'reciclar' || decisionData.finVida === 'donar') && (
-              <div className="mt-8 bg-white/5 rounded-2xl p-6 border border-white/20">
+            {/* Punto verde */}
+            {showPuntoVerde && (
+              <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6">
                 <h3 className="text-xl font-semibold mb-4">📍 Punto Verde UIDE – Campus Loja</h3>
 
-                <div className="mb-4 p-3 bg-emerald-500/10 rounded-lg">
-                  <p className="font-medium text-emerald-300">✅ ¡Tu decisión tiene impacto real!</p>
-                  <p>Elige entregar tu dispositivo en nuestro punto verde institucional.</p>
+                <div className="mb-4 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/20">
+                  <p className="font-semibold text-emerald-200">✅ ¡Tu decisión tiene impacto real!</p>
+                  <p className="text-sm text-white/70 mt-1">Entrega tu dispositivo en nuestro punto verde institucional.</p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                  <div>
-                    <h4 className="font-semibold text-emerald-300 mb-2">✅ Aceptamos:</h4>
-                    <ul className="text-sm space-y-1">
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <h4 className="font-semibold text-emerald-200 mb-2">✅ Aceptamos</h4>
+                    <ul className="text-sm text-white/70 space-y-1">
                       <li>• Laptops y computadoras</li>
                       <li>• Teléfonos móviles</li>
                       <li>• Cargadores y cables</li>
                       <li>• Periféricos (teclados, mouse)</li>
                     </ul>
                   </div>
-                  <div>
-                    <h4 className="font-semibold text-red-300 mb-2">❌ No aceptamos:</h4>
-                    <ul className="text-sm space-y-1">
+
+                  <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+                    <h4 className="font-semibold text-red-200 mb-2">❌ No aceptamos</h4>
+                    <ul className="text-sm text-white/70 space-y-1">
                       <li>• Baterías sueltas</li>
                       <li>• Electrodomésticos grandes</li>
-                      <li>• Pantallas rotas (solo en campañas especiales)</li>
+                      <li>• Pantallas rotas (solo campañas especiales)</li>
                     </ul>
                   </div>
                 </div>
 
-                <div className="mb-4 p-3 bg-blue-500/10 rounded-lg">
-                  <h4 className="font-semibold text-blue-300 mb-1">🕒 Horarios piloto:</h4>
-                  <p className="text-sm">Lunes a viernes: 8:00 – 17:00</p>
-                  <p className="text-sm">Ubicación: Edificio Central, Planta Baja</p>
+                <div className="mb-4 p-4 rounded-2xl bg-white/[0.04] border border-white/10">
+                  <h4 className="font-semibold text-white mb-1">🕒 Horarios piloto</h4>
+                  <p className="text-sm text-white/70">Lunes a viernes: 8:00 – 17:00</p>
+                  <p className="text-sm text-white/70">Ubicación: Edificio Central, Planta Baja</p>
                 </div>
 
                 <a
-                  href="https://www.google.com/maps?q=-3.9721021,-79.1991272"
+                  href="https://www.google.com/maps?q=-3.9721021  ,-79.1991272"
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="w-full inline-flex items-center justify-center gap-2 px-4 py-2 bg-emerald-500 text-neutral-950 rounded-lg hover:bg-emerald-600 transition"
+                  className="w-full inline-flex items-center justify-center gap-2 h-11 px-5 rounded-2xl font-semibold
+                    bg-white/[0.04] border border-white/10 text-white/80 hover:bg-white/[0.06] hover:text-white transition"
                 >
                   🗺️ Cómo llegar a UIDE – Campus Loja
                 </a>
+
+                <div className="mt-6">
+                  <ButtonPrimary onClick={handleConfirmCommitment}>✅ Declarar mi intención de entregar</ButtonPrimary>
+                </div>
+
+                {/* ✅ Certificado integrado (diseño tipo certificado + sin footer) */}
+                {certData && (
+                  <div ref={certScrollRef} className="mt-6">
+                    <div ref={certCaptureRef} className="bg-white rounded-3xl p-0 overflow-hidden">
+                      <div className="relative mx-auto w-full bg-white overflow-hidden">
+                        {/* marcos */}
+                        <div className="absolute inset-0 rounded-2xl border-[6px] border-emerald-600/20" />
+                        <div className="absolute inset-[14px] rounded-xl border border-slate-300" />
+
+                        {/* watermark */}
+                        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                          <div className="select-none text-[96px] md:text-[140px] font-black tracking-[0.18em] text-slate-200/30">
+                            UIDE
+                          </div>
+                        </div>
+
+                        {/* manchas suaves */}
+                        <div className="pointer-events-none absolute -top-10 -left-10 h-56 w-56 rounded-full bg-cyan-500/10 blur-2xl" />
+                        <div className="pointer-events-none absolute -bottom-10 -right-10 h-56 w-56 rounded-full bg-emerald-500/10 blur-2xl" />
+
+                        {/* layout */}
+                        <div className="relative h-full min-h-[690px] p-8 md:p-10 flex flex-col">
+                          {/* header */}
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-start gap-3">
+                              {/* 👉 aquí puedes cambiar 🎓 por tu logo real con <img /> */}
+                              <div className="h-12 w-12 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
+                                <span className="text-xl">🎓</span>
+                              </div>
+                              <div>
+                                <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500 leading-snug">
+                                  Universidad Internacional del Ecuador
+                                </p>
+                                <p className="mt-1 text-[11px] uppercase tracking-[0.28em] text-slate-500 leading-snug">
+                                  UIDE • Campus Loja
+                                </p>
+                              </div>
+                            </div>
+
+                            <div className="text-right">
+                              <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Código</p>
+                              <p className="mt-1 font-mono text-sm text-emerald-700">{certData.code}</p>
+                              <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-semibold">
+                                ♻️ Programa RAEE
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* titulo */}
+                          <div className="mt-6 text-center">
+                            <div className="mx-auto h-1 w-20 bg-gradient-to-r from-emerald-600 to-cyan-500 rounded-full" />
+                            <h4 className="mt-4 text-2xl md:text-3xl font-extrabold tracking-wide text-slate-900">
+                              CERTIFICADO DE COMPROMISO RAEE
+                            </h4>
+                            <p className="mt-2 text-sm text-slate-600 max-w-3xl mx-auto leading-relaxed">
+                              Se otorga la presente constancia como declaración de{" "}
+                              <span className="font-semibold text-slate-900">intención de entrega</span> para
+                              disposición responsable de residuos electrónicos.
+                            </p>
+                          </div>
+
+                          {/* body */}
+                          <div className="mt-7 flex-1">
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
+                              <div>
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Otorgado a</p>
+                                <div className="mt-2 border-b border-slate-300 pb-2">
+                                  <p className="text-lg font-semibold text-slate-900 leading-snug break-words">
+                                    {certData.userName}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Dispositivo</p>
+                                <div className="mt-2 border-b border-slate-300 pb-2">
+                                  <p className="text-lg font-semibold text-slate-900 leading-snug break-words">
+                                    {certData.device}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Fecha y hora</p>
+                                <div className="mt-2 border-b border-slate-300 pb-2">
+                                  <p className="text-base font-semibold text-slate-900 leading-snug break-words">
+                                    {certData.dateTime}
+                                  </p>
+                                </div>
+                              </div>
+
+                              <div>
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Lugar</p>
+                                <div className="mt-2 border-b border-slate-300 pb-2">
+                                  <p className="text-base font-semibold text-slate-900 leading-snug break-words">
+                                    {certData.place}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* firmas + sello */}
+                            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                              <div className="md:col-span-2 grid grid-cols-2 gap-6">
+                                <div className="text-center">
+                                  
+                                  
+                                </div>
+
+                                <div className="text-center">
+                                  
+  
+                                </div>
+                              </div>
+
+                              <div className="flex md:justify-end justify-center">
+                                <div className="h-24 w-24 rounded-full border-[5px] border-emerald-600/25 bg-emerald-50 flex items-center justify-center relative">
+                                  <div className="h-16 w-16 rounded-full border border-emerald-600/25 bg-white flex items-center justify-center">
+                                    <span className="text-2xl">🌿</span>
+                                  </div>
+                                  <div className="absolute -bottom-3 text-[10px] tracking-[0.18em] uppercase text-emerald-800 font-semibold">
+                                    validado
+                                  </div>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* ✅ Sin footer */}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-5 flex flex-col sm:flex-row gap-3">
+                      <ButtonPrimary onClick={handleDownloadCertificatePDF}>📄 Descargar certificado (PDF)</ButtonPrimary>
+
+                      <button
+                        onClick={() => window.print()}
+                        className="w-full h-11 px-5 rounded-2xl font-semibold bg-white/[0.04] border border-white/10
+                          text-white/80 hover:bg-white/[0.06] hover:text-white transition"
+                      >
+                        🖨️ Imprimir
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                <div className="mt-6 p-4 rounded-2xl border border-white/10 bg-white/[0.04]">
+                  <h4 className="font-semibold text-white mb-2">📣 ¡Únete a nuestra campaña!</h4>
+                  <p className="text-sm text-white/70 leading-relaxed">
+                    ¿Tienes más dispositivos para donar? <br />
+                    <b className="text-white">UIDE organiza campañas mensuales</b> de recolección RAEE. <br />
+                    Sigue nuestras redes para enterarte de la próxima fecha.
+                  </p>
+                </div>
               </div>
             )}
+          </Card>
 
-            {/* ✅ BOTÓN DE COMPROMISO (NO DE ENTREGA FÍSICA) */}
-            {(decisionData.finVida === 'reciclar' || decisionData.finVida === 'donar') && (
-              <div className="mt-6 pt-6 border-t border-white/20">
-                <button
-                  onClick={handleConfirmCommitment}
-                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white font-semibold rounded-lg hover:from-blue-600 hover:to-purple-600 transition"
-                >
-                  ✅ Declarar mi intención de entregar en Punto Verde UIDE
-                </button>
-              </div>
-            )}
-
-            {/* ✅ CAMPAÑA DE DONACIÓN INSTITUCIONAL */}
-            {(decisionData.finVida === 'reciclar' || decisionData.finVida === 'donar') && (
-              <div className="mt-8 p-4 bg-gradient-to-r from-purple-500/20 to-blue-500/20 rounded-xl border border-purple-400/30">
-                <h3 className="font-semibold text-purple-300 mb-2">📣 ¡Únete a nuestra campaña!</h3>
-                <p className="text-sm">
-                  ¿Tienes más dispositivos para donar?  
-                  <br />
-                  <strong>UIDE organiza campañas mensuales</strong> de recolección de RAEE.  
-                  <br />
-                  Sigue nuestras redes para enterarte de la próxima fecha.
-                </p>
-              </div>
-            )}
-          </div>
-
-          {/* Panel derecho: impacto final */}
-          <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
+          {/* derecha */}
+          <Card className="p-8">
             <h2 className="text-2xl font-semibold mb-6">📈 Impacto ambiental final</h2>
 
-            <div className="h-64 min-h-[16rem]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={[
-                  { name: 'CO₂', value: impact.CO2 },
-                  { name: 'Agua', value: impact.agua },
-                  { name: 'Residuos', value: impact.residuos }
-                ]}>
-                  <XAxis dataKey="name" stroke="#4ade80" />
-                  <YAxis stroke="#4ade80" />
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: 'rgba(15, 23, 42, 0.9)', borderColor: '#0e7490' }}
-                    itemStyle={{ color: '#4ade80' }}
-                  />
-                  <Bar dataKey="value" fill="#0e7490" />
-                </BarChart>
-              </ResponsiveContainer>
+            <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
+              <div className="h-64 min-h-[16rem]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={[
+                      { name: "CO₂", value: impact.CO2 },
+                      { name: "Agua", value: impact.agua },
+                      { name: "Residuos", value: impact.residuos },
+                    ]}
+                  >
+                    <XAxis dataKey="name" stroke="rgba(255,255,255,0.55)" />
+                    <YAxis stroke="rgba(255,255,255,0.55)" />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "rgba(15, 23, 42, 0.95)",
+                        border: "1px solid rgba(255,255,255,0.10)",
+                        borderRadius: "12px",
+                        color: "white",
+                      }}
+                      itemStyle={{ color: "#a7f3d0" }}
+                      labelStyle={{ color: "rgba(255,255,255,0.85)" }}
+                    />
+                    <Bar dataKey="value" fill="#10b981" radius={[10, 10, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
             </div>
 
-            <div className="mt-6">
+            <div className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-5">
               <div className="flex justify-between items-center">
                 <span className="text-white/70">Puntuación ecológica</span>
-                <span className="text-2xl font-bold text-emerald-300">{impact.score}<span className="text-lg">/100</span></span>
+                <span className="text-2xl font-bold text-emerald-200">
+                  {impact.score}
+                  <span className="text-lg text-white/45">/100</span>
+                </span>
               </div>
-              <div className="mt-2 w-full bg-white/10 rounded-full h-2">
-                <div 
-                  className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-2 rounded-full" 
-                  style={{ width: `${impact.score}%` }}
-                ></div>
-              </div>
-            </div>
 
-            <div className="mt-6 text-sm text-white/60">
-              <p>Comparado con el promedio de dispositivos similares.</p>
+              <div className="mt-3 w-full bg-white/10 rounded-full h-2.5 overflow-hidden">
+                <div
+                  className="bg-gradient-to-r from-emerald-400 to-emerald-600 h-2.5 rounded-full"
+                  style={{ width: `${impact.score}%` }}
+                />
+              </div>
+
+              <p className="mt-4 text-sm text-white/55">Comparado con el promedio de dispositivos similares.</p>
             </div>
-          </div>
+          </Card>
         </div>
 
         <div className="mt-10 text-center text-white/45 text-sm">
