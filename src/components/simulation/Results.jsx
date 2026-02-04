@@ -183,37 +183,65 @@ export default function Results() {
     }
   };
 
-  // ✅ Informe PDF con diseño más "premium"
+  // ✅✅✅ MEJORA: Informe PDF ocupa A4 completo + multi-página (sin deformar)
   const handleDownloadPDF = async () => {
     if (!device) return;
 
     const recommendations = getRecommendations();
 
+    // A4 en pixeles aprox (96dpi)
+    const A4_W = 794;
+    const A4_H = 1123;
+
     const pdfContent = document.createElement("div");
-    pdfContent.style.width = "860px";
-    pdfContent.style.padding = "34px";
+
+    // “Lienzo” A4 real
+    pdfContent.style.width = `${A4_W}px`;
+    pdfContent.style.minHeight = `${A4_H}px`;
+    pdfContent.style.padding = "52px";
+    pdfContent.style.boxSizing = "border-box";
     pdfContent.style.fontFamily = "Inter, Arial, sans-serif";
     pdfContent.style.background = "#ffffff";
     pdfContent.style.color = "#0f172a";
-    pdfContent.style.borderRadius = "18px";
+
+    // oculto fuera de la pantalla
+    pdfContent.style.position = "fixed";
+    pdfContent.style.left = "-10000px";
+    pdfContent.style.top = "0";
+    pdfContent.style.borderRadius = "0";
 
     const badge = (label, value) => `
-      <div style="display:inline-flex; gap:10px; align-items:center; padding:10px 14px; border-radius:999px; border:1px solid #e5e7eb; background:#f8fafc; font-size:12px;">
-        <span style="color:#0f766e; font-weight:700;">${label}</span>
-        <span style="color:#0f172a; font-weight:700;">${value}</span>
+      <div style="
+        display:inline-flex; gap:10px; align-items:center;
+        padding:10px 14px; border-radius:999px;
+        border:1px solid #e5e7eb; background:#f8fafc;
+        font-size:12px; white-space:nowrap;">
+        <span style="color:#0f766e; font-weight:800;">${label}</span>
+        <span style="color:#0f172a; font-weight:800;">${value}</span>
       </div>
     `;
 
     pdfContent.innerHTML = `
-      <div style="display:flex; justify-content:space-between; align-items:center; gap:18px; padding:18px 18px 14px; border-radius:16px; background:linear-gradient(135deg,#ecfdf5,#cffafe); border:1px solid #d1fae5;">
-        <div>
-          <div style="font-size:12px; letter-spacing:1.4px; text-transform:uppercase; color:#065f46; font-weight:700;">SimuVidaTech</div>
-          <div style="margin-top:6px; font-size:26px; font-weight:800; color:#064e3b;">Informe de Impacto Ambiental</div>
-          <div style="margin-top:6px; font-size:13px; color:#334155;">Resultados estimados • Uso educativo</div>
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:18px;
+        padding:18px 18px 14px; border-radius:16px;
+        background:linear-gradient(135deg,#ecfdf5,#cffafe);
+        border:1px solid #d1fae5;">
+        <div style="flex:1;">
+          <div style="font-size:12px; letter-spacing:1.6px; text-transform:uppercase; color:#065f46; font-weight:800;">
+            SimuVidaTech
+          </div>
+          <div style="margin-top:6px; font-size:28px; font-weight:900; color:#064e3b;">
+            Informe de Impacto Ambiental
+          </div>
+          <div style="margin-top:6px; font-size:13px; color:#334155;">
+            Resultados estimados • Uso educativo
+          </div>
         </div>
-        <div style="text-align:right;">
-          <div style="font-size:12px; color:#0f766e; font-weight:700;">Puntuación ecológica</div>
-          <div style="margin-top:6px; font-size:28px; font-weight:900; color:#047857;">${impact.score}<span style="font-size:16px; color:#64748b;">/100</span></div>
+        <div style="text-align:right; min-width:180px;">
+          <div style="font-size:12px; color:#0f766e; font-weight:800;">Puntuación ecológica</div>
+          <div style="margin-top:6px; font-size:34px; font-weight:900; color:#047857; line-height:1;">
+            ${impact.score}<span style="font-size:16px; color:#64748b;">/100</span>
+          </div>
         </div>
       </div>
 
@@ -226,8 +254,8 @@ export default function Results() {
 
       <div style="margin-top:18px; display:grid; grid-template-columns: 1fr 1fr; gap:14px;">
         <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px;">
-          <div style="font-size:13px; font-weight:800; color:#064e3b; margin-bottom:10px;">Dispositivo</div>
-          <div style="font-size:13px; line-height:1.7;">
+          <div style="font-size:13px; font-weight:900; color:#064e3b; margin-bottom:10px;">Dispositivo</div>
+          <div style="font-size:13px; line-height:1.8;">
             <div><b>Tipo:</b> ${device.type}</div>
             <div><b>Modelo:</b> ${device.model}</div>
             <div><b>Año:</b> ${device.year || "No especificado"}</div>
@@ -235,8 +263,8 @@ export default function Results() {
         </div>
 
         <div style="border:1px solid #e5e7eb; border-radius:16px; padding:16px;">
-          <div style="font-size:13px; font-weight:800; color:#064e3b; margin-bottom:10px;">Decisiones</div>
-          <div style="font-size:13px; line-height:1.7;">
+          <div style="font-size:13px; font-weight:900; color:#064e3b; margin-bottom:10px;">Decisiones</div>
+          <div style="font-size:13px; line-height:1.8;">
             <div><b>Uso:</b> ${decisionData.uso}</div>
             <div><b>Fin de vida:</b> ${decisionData.finVida}</div>
           </div>
@@ -244,10 +272,10 @@ export default function Results() {
       </div>
 
       <div style="margin-top:14px; border:1px solid #e5e7eb; border-radius:16px; padding:16px;">
-        <div style="font-size:13px; font-weight:800; color:#064e3b; margin-bottom:10px;">Recomendaciones</div>
+        <div style="font-size:13px; font-weight:900; color:#064e3b; margin-bottom:10px;">Recomendaciones</div>
         ${
           recommendations.length
-            ? `<ul style="margin:0; padding-left:18px; font-size:13px; color:#0f172a; line-height:1.7;">
+            ? `<ul style="margin:0; padding-left:18px; font-size:13px; color:#0f172a; line-height:1.8;">
                 ${recommendations.map((r) => `<li style="margin:6px 0;">${r}</li>`).join("")}
               </ul>`
             : `<div style="font-size:13px; color:#64748b;">No hay recomendaciones disponibles para este escenario.</div>`
@@ -269,24 +297,32 @@ export default function Results() {
       });
 
       const imgData = canvas.toDataURL("image/png");
+
       const pdf = new jsPDF("p", "mm", "a4");
       const pageW = 210;
       const pageH = 297;
-      const margin = 8;
 
-      const maxW = pageW - margin * 2;
-      const maxH = pageH - margin * 2;
-
-      const imgW = maxW;
+      const imgW = pageW;
       const imgH = (canvas.height * imgW) / canvas.width;
 
-      const finalH = imgH > maxH ? maxH : imgH;
-      const finalW = imgH > maxH ? (canvas.width * finalH) / canvas.height : imgW;
+      // 1 página
+      if (imgH <= pageH) {
+        pdf.addImage(imgData, "PNG", 0, 0, imgW, imgH);
+      } else {
+        // multi-página sin deformar
+        let heightLeft = imgH;
+        let position = 0;
 
-      const x = (pageW - finalW) / 2;
-      const y = (pageH - finalH) / 2;
+        pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
+        heightLeft -= pageH;
 
-      pdf.addImage(imgData, "PNG", x, y, finalW, finalH);
+        while (heightLeft > 0) {
+          pdf.addPage();
+          position -= pageH;
+          pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
+          heightLeft -= pageH;
+        }
+      }
 
       const cleanModel = device.model.replace(/\s+/g, "_").replace(/[^a-zA-Z0-9_]/g, "");
       pdf.save(`simuvidatech_${device.type}_${cleanModel}.pdf`);
@@ -331,12 +367,10 @@ export default function Results() {
       });
 
       const imgData = canvas.toDataURL("image/png");
-      // ✅ CAMBIO 2: Orientación horizontal (landscape)
       const pdf = new jsPDF("l", "mm", "a4");
 
-      // ✅ Menos margen para que sea "full page"
-      const pageW = 297; // Ancho en orientación horizontal
-      const pageH = 210; // Alto en orientación horizontal
+      const pageW = 297;
+      const pageH = 210;
       const margin = 4;
 
       const maxW = pageW - margin * 2;
@@ -494,32 +528,26 @@ export default function Results() {
                   <ButtonPrimary onClick={handleConfirmCommitment}>✅ Declarar mi intención de entregar</ButtonPrimary>
                 </div>
 
-                {/* ✅ Certificado integrado (diseño tipo certificado + sin footer) */}
+                {/* ✅ Certificado integrado (tal cual lo tienes) */}
                 {certData && (
                   <div ref={certScrollRef} className="mt-6">
                     <div ref={certCaptureRef} className="bg-white rounded-3xl p-0 overflow-hidden">
                       <div className="relative mx-auto w-full bg-white overflow-hidden">
-                        {/* marcos */}
                         <div className="absolute inset-0 rounded-2xl border-[6px] border-emerald-600/20" />
                         <div className="absolute inset-[14px] rounded-xl border border-slate-300" />
 
-                        {/* watermark */}
                         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                           <div className="select-none text-[96px] md:text-[140px] font-black tracking-[0.18em] text-slate-200/30">
                             UIDE
                           </div>
                         </div>
 
-                        {/* manchas suaves */}
                         <div className="pointer-events-none absolute -top-10 -left-10 h-56 w-56 rounded-full bg-cyan-500/10 blur-2xl" />
                         <div className="pointer-events-none absolute -bottom-10 -right-10 h-56 w-56 rounded-full bg-emerald-500/10 blur-2xl" />
 
-                        {/* layout */}
                         <div className="relative h-full min-h-[690px] p-8 md:p-10 flex flex-col">
-                          {/* header */}
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3">
-                              {/* 👉 aquí puedes cambiar 🎓 por tu logo real con <img /> */}
                               <div className="h-12 w-12 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
                                 <span className="text-xl">🎓</span>
                               </div>
@@ -542,7 +570,6 @@ export default function Results() {
                             </div>
                           </div>
 
-                          {/* titulo */}
                           <div className="mt-6 text-center">
                             <div className="mx-auto h-1 w-20 bg-gradient-to-r from-emerald-600 to-cyan-500 rounded-full" />
                             <h4 className="mt-4 text-2xl md:text-3xl font-extrabold tracking-wide text-slate-900">
@@ -555,7 +582,6 @@ export default function Results() {
                             </p>
                           </div>
 
-                          {/* body */}
                           <div className="mt-7 flex-1">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                               <div>
@@ -595,18 +621,10 @@ export default function Results() {
                               </div>
                             </div>
 
-                            {/* firmas + sello */}
                             <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
                               <div className="md:col-span-2 grid grid-cols-2 gap-6">
-                                <div className="text-center">
-                                  
-                                  
-                                </div>
-
-                                <div className="text-center">
-                                  
-  
-                                </div>
+                                <div className="text-center"></div>
+                                <div className="text-center"></div>
                               </div>
 
                               <div className="flex md:justify-end justify-center">
@@ -621,8 +639,7 @@ export default function Results() {
                               </div>
                             </div>
                           </div>
-
-                          {/* ✅ Sin footer */}
+                          {/* sin footer */}
                         </div>
                       </div>
                     </div>
