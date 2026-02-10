@@ -1,5 +1,14 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
+import { 
+  FaStar, 
+  FaLeaf, 
+  FaTint, 
+  FaRecycle, 
+  FaChartBar,
+  FaCheckCircle
+} from "react-icons/fa";
+
 
 function Chip({ active = false, icon, label }) {
   return (
@@ -11,7 +20,8 @@ function Chip({ active = false, icon, label }) {
           : "bg-white/[0.02] border-white/10 text-white/70 hover:bg-white/[0.04]",
       ].join(" ")}
     >
-      <span className="text-base">{icon}</span>
+
+      {icon}
       {label}
     </span>
   );
@@ -37,8 +47,8 @@ function StepCard({ n, title, desc, bullets }) {
 
       {bullets?.length ? (
         <ul className="mt-4 space-y-2">
-          {bullets.map((b) => (
-            <li key={b} className="flex items-start gap-2 text-sm text-white/70">
+          {bullets.map((b, index) => (
+            <li key={index} className="flex items-start gap-2 text-sm text-white/70">
               <span className="mt-1.5 h-1.5 w-1.5 rounded-full bg-emerald-400/70" />
               <span className="leading-relaxed">{b}</span>
             </li>
@@ -65,6 +75,7 @@ function MiniCard({ label, value }) {
 export default function About() {
   const navigate = useNavigate();
 
+  // Indicadores clave sobre el propósito y funcionamiento de la plataforma
   const mini = useMemo(
     () => [
       { label: "Objetivo", value: "Entender el ciclo de vida (RAEE) con evidencia" },
@@ -77,7 +88,6 @@ export default function About() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo (mismo del Home) */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.10),transparent_62%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(34,211,238,0.06),transparent_62%)]" />
@@ -86,10 +96,10 @@ export default function About() {
       </div>
 
       <main className="relative max-w-6xl mx-auto px-6 pt-14 pb-12">
-        {/* Header estilo Home */}
+
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-emerald-200/90 font-semibold flex items-center justify-center gap-2 mb-2">
-            <span className="animate-pulse">✨</span>
+            <FaStar className="animate-pulse text-emerald-300" />
             SimuVidaTech • Cómo funciona (2 min)
           </div>
 
@@ -108,21 +118,20 @@ export default function About() {
             conclusiones con escenarios comparables (CO₂, agua y RAEE).
           </p>
 
-          {/* Chips */}
           <div className="mt-6 flex flex-wrap justify-center gap-3">
-            <Chip icon="🌿" label="CO₂" />
-            <Chip active icon="💧" label="Agua" />
-            <Chip icon="♻️" label="RAEE" />
-            <Chip icon="📊" label="Comparativos" />
+            <Chip icon={<FaLeaf className="text-base" />} label="CO₂" />
+            <Chip active icon={<FaTint className="text-base" />} label="Agua" />
+            <Chip icon={<FaRecycle className="text-base" />} label="RAEE" />
+            <Chip icon={<FaChartBar className="text-base" />} label="Comparativos" />
           </div>
 
-          {/* ✅ Solo un botón (no repetitivo) */}
           <div className="mt-8 flex justify-center">
             <button
               onClick={() => navigate("/")}
-              className="px-7 py-3.5 rounded-xl font-semibold border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all"
+              className="px-7 py-3.5 rounded-xl font-semibold border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all flex items-center gap-2"
+              aria-label="Volver al inicio"
             >
-              ← Volver al inicio
+              <FaCheckCircle className="text-sm" /> Volver al inicio
             </button>
           </div>
 
@@ -130,17 +139,15 @@ export default function About() {
             Resultados estimados con fines educativos • no sustituyen medición real.
           </div>
 
-          {/* Mini indicadores (para conectar con Home) */}
           <div className="mt-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-left">
-            {mini.map((m) => (
-              <MiniCard key={m.label} label={m.label} value={m.value} />
+            {mini.map((m, index) => (
+              <MiniCard key={index} label={m.label} value={m.value} />
             ))}
           </div>
         </div>
 
         <div className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-        {/* Steps */}
         <section className="mt-10 grid md:grid-cols-2 gap-6 max-w-5xl mx-auto">
           <StepCard
             n="1"
@@ -168,17 +175,15 @@ export default function About() {
           />
         </section>
 
-        {/* CTA final suave (sin botón extra) */}
         <div className="mt-12 max-w-5xl mx-auto">
           <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
-            <div className="text-white/90 font-semibold">
+            <div className="text-white/90 font-semibold flex items-center gap-2">
+              <FaStar className="text-emerald-400" />
               Tip: vuelve al inicio y empieza con una demo cuando quieras.
-            </div>
-            <div className="mt-1 text-sm text-white/70">
-              
             </div>
           </div>
         </div>
+        
       </main>
     </div>
   );
