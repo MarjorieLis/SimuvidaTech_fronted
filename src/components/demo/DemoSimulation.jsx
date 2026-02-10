@@ -1,8 +1,21 @@
-// Simulacion demo interactiva: muestra el ciclo de vida de dispositivos y calcula impacto ambiental en tiempo real
-
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { FaMobileAlt, FaLaptop, FaChartBar, FaLightbulb, FaRecycle, FaBatteryFull, FaGlobe, FaHandshake, FaBox, FaHeart } from "react-icons/fa";
+import { 
+  FaMobileAlt, 
+  FaLaptop, 
+  FaChartBar, 
+  FaLightbulb, 
+  FaRecycle, 
+  FaBatteryFull, 
+  FaGlobe, 
+  FaHandshake, 
+  FaBox, 
+  FaHeart,
+  FaCheckCircle,  
+  FaCloud,        
+  FaShareAlt,     
+  FaLock          
+} from "react-icons/fa";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function DemoSimulation() {
@@ -285,7 +298,7 @@ export default function DemoSimulation() {
                   </div>
                 )}
 
-                <div className="h-48 mt-6">
+                <div className="h-48 min-h-[12rem] w-full min-w-[300px] mt-6">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={[
                       { name: 'CO₂', value: impact.CO2 },

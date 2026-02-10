@@ -1,9 +1,21 @@
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
-import { FaUser, FaEnvelope, FaLock, FaCheckCircle, FaTimesCircle, FaEye, FaEyeSlash } from "react-icons/fa";
+import { 
+  FaUser, 
+  FaEnvelope, 
+  FaLock, 
+  FaCheckCircle, 
+  FaTimesCircle, 
+  FaEye, 
+  FaEyeSlash, 
+  FaInfoCircle,   
+  FaArrowLeft     
+} from "react-icons/fa";
 import api from "../../services/api";
 import { login } from "../../utils/auth";
 
+// Componente reutilizable para campos de formulario con label y hint opcional
 function Field({ label, children, hint }) {
   return (
     <div className="space-y-1.5">
@@ -18,7 +30,7 @@ function Field({ label, children, hint }) {
 }
 
 export default function Register() {
-  // Estado para los campos basicos del formulario
+  // Estado para los campos básicos del formulario
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -76,7 +88,7 @@ export default function Register() {
     }
     
     try {
-      // Prepara datos del usuario (incluye adminCode si esta en modo admin)
+      // Prepara datos del usuario (incluye adminCode si está en modo admin)
       const userData = { name, email, password };
       if (isAdminMode) {
         userData.adminCode = adminCode;
@@ -95,7 +107,6 @@ export default function Register() {
     }
   };
 
-  // Clases CSS reutilizables para inputs del formulario
   const inputBase =
     "w-full rounded-xl bg-neutral-950/50 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none transition " +
     "focus:border-emerald-400/40 focus:ring-2 focus:ring-emerald-400/20";
@@ -193,7 +204,7 @@ export default function Register() {
                   {show ? <FaEyeSlash className="text-base" /> : <FaEye className="text-base" />}
                 </button>
               </div>
-    
+              
               <div className="mt-2 space-y-1">
                 <div className="flex items-center gap-2">
                   <div className={`w-2 h-2 rounded-full ${passwordRequirements.length ? 'bg-emerald-500' : 'bg-red-500'}`} />
