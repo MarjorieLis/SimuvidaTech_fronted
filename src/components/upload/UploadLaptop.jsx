@@ -1,12 +1,15 @@
-// src/components/upload/UploadLaptop.jsx
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaLaptop, FaArrowLeft, FaSyncAlt, FaInfoCircle } from "react-icons/fa";
 import api from "../../services/api";
 
 function Field({ label, hint, children }) {
   return (
     <div className="space-y-1.5">
-      <label className="text-sm text-white/80">{label}</label>
+      <label className="text-sm text-white/80 flex items-center gap-1">
+        <FaInfoCircle className="text-xs text-emerald-400" />
+        {label}
+      </label>
       {children}
       {hint ? <p className="text-xs text-white/50">{hint}</p> : null}
     </div>
@@ -14,6 +17,7 @@ function Field({ label, hint, children }) {
 }
 
 export default function UploadLaptop() {
+  // Estado para los campos del formulario
   const [model, setModel] = useState("");
   const [year, setYear] = useState("");
   const [materials, setMaterials] = useState("");
@@ -21,12 +25,14 @@ export default function UploadLaptop() {
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
 
+  // Manejador del envío del formulario
   const handleSubmit = async (e) => {
     e.preventDefault();
     setErrorMsg("");
     setLoading(true);
 
     try {
+      // Envía datos del dispositivo al backend
       const response = await api.post("/devices", {
         type: "laptop",
         model,
@@ -34,17 +40,20 @@ export default function UploadLaptop() {
         materials,
       });
 
-      // ✅ Validación adicional
+      // Validación adicional: asegura que el servidor devolvió un ID válido
       if (!response.data || !response.data.id) {
         throw new Error("El servidor no devolvió un ID válido");
       }
 
+      // Guarda ID temporalmente para la simulación
       localStorage.setItem("currentDeviceId", response.data.id);
-      // ✅ ¡CORREGIDO! Ahora incluye el ID
+      
+      // Navega a la simulación con el ID del dispositivo recién creado
       navigate(`/simulation/${response.data.id}`);
     } catch (err) {
       console.error("Error al registrar laptop:", err);
       setLoading(false);
+      // Muestra mensaje de error específico del servidor o genérico
       setErrorMsg(
         err.response?.data?.error || 
         err.message || 
@@ -68,7 +77,7 @@ export default function UploadLaptop() {
           <div>
             <p className="text-sm text-emerald-200/90 font-medium">Carga de dispositivo</p>
             <h1 className="mt-1 text-3xl md:text-4xl font-semibold flex items-center gap-3">
-              <span className="text-2xl">💻</span> Subir laptop
+              <FaLaptop className="text-2xl text-blue-400" /> Subir laptop
             </h1>
             <p className="mt-2 text-white/65 max-w-2xl">
               Registra tu dispositivo para calcular su impacto y simular decisiones de uso, reparación o reciclaje.
@@ -79,8 +88,9 @@ export default function UploadLaptop() {
             onClick={() => navigate("/dashboard")}
             className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full text-sm bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
             type="button"
+            aria-label="Volver al Dashboard"
           >
-            ← Volver al Dashboard
+            <FaArrowLeft className="text-sm" /> Volver al Dashboard
           </button>
         </div>
 
@@ -101,7 +111,8 @@ export default function UploadLaptop() {
           </div>
 
           {errorMsg ? (
-            <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-start gap-2">
+              <FaInfoCircle className="mt-0.5 flex-shrink-0" />
               {errorMsg}
             </div>
           ) : null}
@@ -115,6 +126,7 @@ export default function UploadLaptop() {
                 value={model}
                 onChange={(e) => setModel(e.target.value)}
                 required
+                aria-required="true"
               />
             </Field>
 
@@ -128,6 +140,7 @@ export default function UploadLaptop() {
                 min="1990"
                 max="2100"
                 required
+                aria-required="true"
               />
             </Field>
 
@@ -142,6 +155,7 @@ export default function UploadLaptop() {
                 value={materials}
                 onChange={(e) => setMaterials(e.target.value)}
                 required
+                aria-required="true"
               />
             </Field>
 
@@ -149,9 +163,18 @@ export default function UploadLaptop() {
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full sm:w-auto flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition disabled:opacity-60 disabled:cursor-not-allowed"
+                className="w-full sm:w-auto flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                aria-busy={loading}
               >
-                {loading ? "Guardando..." : "Guardar y continuar →"}
+                {loading ? (
+                  <>
+                    <FaSyncAlt className="animate-spin" /> Guardando...
+                  </>
+                ) : (
+                  <>
+                    Guardar y continuar <span className="hidden sm:inline">→</span>
+                  </>
+                )}
               </button>
 
               <button
@@ -161,9 +184,10 @@ export default function UploadLaptop() {
                   setYear("");
                   setMaterials("");
                 }}
-                className="w-full sm:w-auto rounded-xl py-3 px-6 bg-white/5 border border-white/10 text-white/75 hover:bg-white/10 hover:text-white transition"
+                className="w-full sm:w-auto rounded-xl py-3 px-6 bg-white/5 border border-white/10 text-white/75 hover:bg-white/10 hover:text-white transition flex items-center justify-center gap-2"
+                aria-label="Limpiar formulario"
               >
-                Limpiar
+                <FaSyncAlt className="text-base" /> Limpiar
               </button>
             </div>
           </form>

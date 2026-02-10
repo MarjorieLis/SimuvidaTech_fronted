@@ -1,8 +1,11 @@
-// src/components/dashboard/Dashboard.jsx
-import { useNavigate } from "react-router-dom";
+// Pantalla principal del usuario: permite elegir tipo de dispositivo para analizar impacto ambiental
 
+import { useNavigate } from "react-router-dom";
+import { FaGlobe, FaLeaf, FaTint, FaRecycle, FaMobileAlt, FaLaptop, FaEye } from "react-icons/fa";
+
+// Componente reutilizable para tarjetas de subida de dispositivos
 function UploadCard({ title, description, emoji, tag, onClick, image }) {
-  // ✅ Detecta si es teléfono para ajustar el recorte automáticamente
+  // Detecta si es telefono para ajustar el modo de visualizacion de la imagen
   const isPhone = title?.toLowerCase().includes("tel");
 
   return (
@@ -15,17 +18,13 @@ function UploadCard({ title, description, emoji, tag, onClick, image }) {
         hover:bg-white/[0.06] hover:border-emerald-400/25
         transition-all duration-200 overflow-hidden"
     >
-      {/* Brillo degradado sutil al hover */}
       <div className="pointer-events-none absolute inset-0 opacity-0 group-hover:opacity-100 transition">
         <div className="absolute inset-0 rounded-3xl bg-[linear-gradient(135deg,rgba(16,185,129,0.18),transparent_35%,rgba(34,211,238,0.14))]" />
       </div>
 
-      {/* Imagen superior */}
       {image ? (
         <div className="relative mb-5 rounded-2xl overflow-hidden border border-white/10 bg-black/30">
-          {/* fondo bonito para cuando use contain */}
           <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
-          {/* overlay para que se vea premium */}
           <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
 
           <img
@@ -36,14 +35,13 @@ function UploadCard({ title, description, emoji, tag, onClick, image }) {
             referrerPolicy="no-referrer"
             className={[
               "w-full h-40 md:h-44 transition duration-300",
-              // ✅ Teléfono: se ve completo (no recorta)
               isPhone
                 ? "object-contain p-3 md:p-4 group-hover:scale-[1.01]"
                 : "object-cover group-hover:scale-[1.03]",
             ].join(" ")}
             onError={(e) => {
               e.currentTarget.src =
-                "https://images.unsplash.com/photo-1581092334651-ddf26d9a09d1?w=1400&h=700&fit=crop&auto=format&q=80";
+                "https://images.unsplash.com/photo-1581092334651-ddf26d9a09d1?w=1400&h=700&fit=crop&auto=format&q=80    ";
             }}
           />
 
@@ -107,7 +105,6 @@ export default function Dashboard() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -117,7 +114,6 @@ export default function Dashboard() {
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4 py-12">
-        {/* HERO */}
         <section
           className="mb-12 rounded-3xl p-10
           bg-gradient-to-br from-white/10 to-white/5
@@ -128,7 +124,7 @@ export default function Dashboard() {
             className="mx-auto mb-5 h-16 w-16 rounded-2xl flex items-center justify-center
             bg-emerald-500/15 border border-emerald-400/30 text-3xl"
           >
-            🌍
+            <FaGlobe className="text-emerald-300" />
           </div>
 
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-semibold">
@@ -142,7 +138,6 @@ export default function Dashboard() {
           </p>
         </section>
 
-        {/* PANEL */}
         <section className="mb-8 rounded-2xl p-6 border border-white/10 bg-white/5 backdrop-blur-xl">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div>
@@ -155,52 +150,48 @@ export default function Dashboard() {
             </div>
 
             <div className="flex gap-2 text-sm">
-              <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-200 border border-emerald-400/20">
-                🌿 CO₂
+              <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-200 border border-emerald-400/20 flex items-center gap-1">
+                <FaLeaf className="text-base" /> CO₂
               </span>
-              <span className="px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-200 border border-cyan-400/20">
-                💧 Agua
+              <span className="px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-200 border border-cyan-400/20 flex items-center gap-1">
+                <FaTint className="text-base" /> Agua
               </span>
-              <span className="px-3 py-1.5 rounded-full bg-lime-500/10 text-lime-200 border border-lime-400/20">
-                ♻️ RAEE
+              <span className="px-3 py-1.5 rounded-full bg-lime-500/10 text-lime-200 border border-lime-400/20 flex items-center gap-1">
+                <FaRecycle className="text-base" /> RAEE
               </span>
             </div>
           </div>
         </section>
 
-        {/* CARDS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <UploadCard
             title="Teléfonos"
             description="Sube tu teléfono y descubre su impacto ambiental."
-            emoji="📱"
+            emoji={<FaMobileAlt className="text-blue-400" />}
             tag="Más común"
             onClick={() => navigate("/upload/telefono")}
-            // ✅ Imagen más adecuada (horizontal) para que se vea bien
-            image="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1400&h=800&fit=crop&auto=format&q=80"
+            image="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1400&h=800&fit=crop&auto=format&q=80    "
           />
 
           <UploadCard
             title="Laptops"
             description="Sube tu laptop y descubre cómo reducir su huella."
-            emoji="💻"
+            emoji={<FaLaptop className="text-purple-400" />}
             tag="Recomendado"
             onClick={() => navigate("/upload/laptop")}
-            image="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1400&h=800&fit=crop&auto=format&q=80"
+            image="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1400&h=800&fit=crop&auto=format&q=80    "
           />
         </div>
 
-        {/* Botón mis dispositivos */}
         <div className="mt-8 text-center">
           <button
             onClick={() => navigate("/my-devices")}
-            className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition"
+            className="px-6 py-3 rounded-xl bg-white/5 border border-white/10 text-white/80 hover:bg-white/10 hover:text-white transition flex items-center justify-center gap-2"
           >
-            👁️ Ver mis dispositivos registrados
+            <FaEye className="text-base" /> Ver mis dispositivos registrados
           </button>
         </div>
 
-        {/* Footer interno */}
         <div className="mt-12 text-center text-white/50 text-sm">
           © 2026 SimuVidaTech — Educar para proteger nuestro planeta.
         </div>

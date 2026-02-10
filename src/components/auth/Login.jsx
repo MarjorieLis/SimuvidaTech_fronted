@@ -1,9 +1,12 @@
-// src/components/auth/Login.jsx
+// Componente de inicio de sesion con validacion y manejo de errores
+
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
+import { FaLeaf, FaTint, FaRecycle, FaLock } from "react-icons/fa";
 import api from "../../services/api";
 import { login } from "../../utils/auth";
 
+// Componente reutilizable para campos de formulario con label y hint opcional
 function Field({ label, children, hint }) {
   return (
     <div className="space-y-1.5">
@@ -15,36 +18,45 @@ function Field({ label, children, hint }) {
 }
 
 export default function Login() {
+  // Estado para los campos del formulario
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [show, setShow] = useState(false);
-  const [loading, setLoading] = useState(false);
-  const [errorMsg, setErrorMsg] = useState("");
+  const [show, setShow] = useState(false); // Control de visibilidad de contraseña
+  const [loading, setLoading] = useState(false); // Estado de carga durante login
+  const [errorMsg, setErrorMsg] = useState(""); // Mensaje de error
 
   const navigate = useNavigate();
 
+  // Manejador del formulario de login
   const handleSubmit = async (e) => {
-    e.preventDefault();
-    setErrorMsg("");
-    setLoading(true);
+    e.preventDefault(); // Previene recarga de pagina
+    setErrorMsg(""); // Limpia errores previos
+    setLoading(true); // Activa estado de carga
+    
     try {
+      // Llamada a API para autenticacion
       const res = await api.post("/auth/login", { email, password });
+      
+      // Guarda token y datos de usuario en localStorage
       login(res.data.token, res.data.user);
+      
+      // Redirige al dashboard tras login exitoso
       navigate("/dashboard");
     } catch (err) {
-      setErrorMsg(err.response?.data?.error || "Credenciales inválidas");
+      // Muestra mensaje de error del servidor o generico
+      setErrorMsg(err.response?.data?.error || "Credenciales invalidas");
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
+  // Clases CSS reutilizables para inputs del formulario
   const inputBase =
     "w-full rounded-xl bg-neutral-950/50 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none transition " +
     "focus:border-emerald-400/40 focus:ring-2 focus:ring-emerald-400/20";
 
   return (
     <div className="grid lg:grid-cols-2 gap-10 items-center">
-      {/* LADO IZQ */}
       <section className="hidden lg:block">
         <div className="max-w-md">
           <p className="text-emerald-200/90 text-sm font-medium">
@@ -62,22 +74,20 @@ export default function Login() {
             responsabilidad.
           </p>
 
-          {/* Chips con color semántico */}
           <div className="mt-6 flex gap-3 text-sm">
-            <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-400/20">
-              🌿 CO₂
+            <span className="px-3 py-1.5 rounded-full bg-emerald-500/10 text-emerald-300 border border-emerald-400/20 flex items-center gap-1">
+              <FaLeaf className="text-base" /> CO₂
             </span>
-            <span className="px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-400/20">
-              💧 Agua
+            <span className="px-3 py-1.5 rounded-full bg-cyan-500/10 text-cyan-300 border border-cyan-400/20 flex items-center gap-1">
+              <FaTint className="text-base" /> Agua
             </span>
-            <span className="px-3 py-1.5 rounded-full bg-lime-500/10 text-lime-300 border border-lime-400/20">
-              ♻️ RAEE
+            <span className="px-3 py-1.5 rounded-full bg-lime-500/10 text-lime-300 border border-lime-400/20 flex items-center gap-1">
+              <FaRecycle className="text-base" /> RAEE
             </span>
           </div>
         </div>
       </section>
 
-      {/* CARD */}
       <section className="w-full">
         <div
           className="relative max-w-md mx-auto rounded-2xl p-7
@@ -88,7 +98,7 @@ export default function Login() {
         >
           <div className="flex items-center justify-between gap-3">
             <h2 className="text-2xl font-semibold">Iniciar sesión</h2>
-            <span className="text-xl">🔒</span>
+            <FaLock className="text-xl text-emerald-300" />
           </div>
 
           <p className="mt-1 text-sm text-white/60">
@@ -116,7 +126,7 @@ export default function Login() {
             <Field label="Contraseña" hint="Mínimo 6–8 caracteres recomendado.">
               <div className="relative">
                 <input
-                  type={show ? "text" : "password"}
+                  type={show ? "text" : "password"} 
                   placeholder="••••••••"
                   className={`${inputBase} pr-14`}
                   value={password}
@@ -138,7 +148,7 @@ export default function Login() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading} 
               className="w-full rounded-xl py-3 font-semibold text-neutral-950
                 bg-gradient-to-r from-emerald-500 to-emerald-600
                 hover:from-emerald-400 hover:to-emerald-500

@@ -1,13 +1,18 @@
+// Pagina principal de SimuVidaTech: landing page con secciones informativas y llamadas a accion
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { isAuthenticated } from "../../utils/auth";
+import { 
+  FaStar, FaLeaf, FaBolt, FaRecycle, FaMobileAlt, FaLaptop, 
+  FaLightbulb, FaChartLine, FaUsers, FaPlayCircle 
+} from "react-icons/fa";
 
-/* ✅ Imagen robusta (fallback + lazy + mantiene proporción) */
+// Componente de imagen con manejo de errores y fallback
 function SmartImage({
   src,
   alt,
   className = "",
-  fallback = "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?w=1600&h=900&fit=crop&auto=format&q=80",
+  fallback = "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?w=1600&h=900&fit=crop&auto=format&q=80      ",
 }) {
   const [imgSrc, setImgSrc] = useState(src);
 
@@ -26,6 +31,7 @@ function SmartImage({
   );
 }
 
+// Componente Chip: etiquetas interactivas con estado activo/inactivo
 function Chip({ active = false, icon, label }) {
   return (
     <span
@@ -42,6 +48,7 @@ function Chip({ active = false, icon, label }) {
   );
 }
 
+// Componente StatPill: tarjetas de indicadores pequeños
 function StatPill({ label, value }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-4 min-h-[82px] flex flex-col justify-between hover:bg-white/[0.04] transition-all">
@@ -55,6 +62,7 @@ function StatPill({ label, value }) {
   );
 }
 
+// Componente DeviceCard: tarjetas de dispositivos con acciones
 function DeviceCard({
   icon,
   title,
@@ -78,12 +86,12 @@ function DeviceCard({
             {subtitle}
           </p>
 
-          {tag ? (
+          {tag && (
             <div className="mt-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.02] px-3 py-1 text-xs text-white/60">
               <span className="h-1.5 w-1.5 rounded-full bg-emerald-400/80" />
               {tag}
             </div>
-          ) : null}
+          )}
         </div>
       </div>
 
@@ -104,6 +112,7 @@ function DeviceCard({
           onClick={onExplore}
           className="px-6 py-3 rounded-xl font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 hover:opacity-95 transition-all transform hover:scale-105 shadow-lg shadow-emerald-500/25"
         >
+          <FaPlayCircle className="inline-block mr-2 text-base" />
           Explorar demo
         </button>
 
@@ -118,6 +127,7 @@ function DeviceCard({
   );
 }
 
+// Componente BenefitCard: tarjetas de beneficios
 function BenefitCard({ title, desc, image }) {
   return (
     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6 hover:bg-white/[0.04] transition-all hover:scale-[1.02] transform">
@@ -138,6 +148,7 @@ function BenefitCard({ title, desc, image }) {
   );
 }
 
+// Componente StepCard: tarjetas de pasos numerados
 function StepCard({ number, title, desc, image }) {
   return (
     <div className="flex flex-col items-center text-center p-6 rounded-2xl border border-white/10 bg-white/[0.02] hover:bg-white/[0.04] transition-all">
@@ -161,6 +172,7 @@ function StepCard({ number, title, desc, image }) {
   );
 }
 
+// Componente ImageFeature: seccion con imagen y texto
 function ImageFeature({ image, title, desc, reverse = false }) {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
@@ -188,37 +200,38 @@ function ImageFeature({ image, title, desc, reverse = false }) {
 
 export default function Home() {
   const navigate = useNavigate();
-  const authenticated = isAuthenticated();
+  const authenticated = isAuthenticated(); 
 
   const indicators = useMemo(
     () => [
-      { label: "Dispositivos", value: "Teléfonos, Laptops y más" },
-      { label: "Métricas", value: "CO₂, Agua, RAEE" },
-      { label: "Escenarios", value: "Uso, Reparación, Reciclaje" },
+      { label: "Dispositivos", value: "Telefonos, Laptops y mas" },
+      { label: "Metricas", value: "CO₂, Agua, RAEE" },
+      { label: "Escenarios", value: "Uso, Reparacion, Reciclaje" },
       { label: "Resultados", value: "Comparativos educativos" },
     ],
     []
   );
 
+
   const benefits = useMemo(
     () => [
       {
-        title: "Aprendizaje práctico",
-        desc: "Simula escenarios reales y comprende las consecuencias ambientales de diferentes decisiones sobre tus dispositivos electrónicos.",
+        title: "Aprendizaje practico",
+        desc: "Simula escenarios reales y comprende las consecuencias ambientales de diferentes decisiones sobre tus dispositivos electronicos.",
         image:
-          "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=200&h=200&fit=crop&auto=format&q=80",
+          "https://images.unsplash.com/photo-1542744173-8e7e53415bb0?w=200&h=200&fit=crop&auto=format&q=80      ",
       },
       {
         title: "Datos comparativos",
         desc: "Compara múltiples opciones de uso, reparación y disposición para tomar decisiones más informadas y responsables.",
         image:
-          "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=200&h=200&fit=crop&auto=format&q=80",
+          "https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=200&h=200&fit=crop&auto=format&q=80      ",
       },
       {
         title: "Impacto ambiental",
         desc: "Visualiza cómo tus elecciones afectan recursos como agua, emisiones de CO₂ y generación de residuos electrónicos (RAEE).",
         image:
-          "https://images.unsplash.com/photo-1542605510286-296f9fe6f26b?w=200&h=200&fit=crop&auto=format&q=80",
+          "https://images.unsplash.com/photo-1542605510286-296f9fe6f26b?w=200&h=200&fit=crop&auto=format&q=80      ",
       },
     ],
     []
@@ -231,37 +244,38 @@ export default function Home() {
         title: "Elige tu dispositivo",
         desc: "Selecciona un teléfono, laptop u otro dispositivo electrónico para comenzar la simulación.",
         image:
-          "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=200&h=200&fit=crop&auto=format&q=80",
+          "https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=200&h=200&fit=crop&auto=format&q=80      ",
       },
       {
         number: "2",
         title: "Simula decisiones",
         desc: "Prueba diferentes escenarios: uso prolongado, reparación, reciclaje o disposición final.",
         image:
-          "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=200&h=200&fit=crop&auto=format&q=80",
+          "https://images.unsplash.com/photo-1519389950473-47ba0277781c?w=200&h=200&fit=crop&auto=format&q=80      ",
       },
       {
         number: "3",
         title: "Compara resultados",
         desc: "Visualiza y compara el impacto ambiental de cada decisión con datos claros y educativos.",
         image:
-          "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=200&h=200&fit=crop&auto=format&q=80",
+          "https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=200&h=200&fit=crop&auto=format&q=80      ",
       },
     ],
     []
   );
 
+  
   const features = useMemo(
     () => [
       {
         image:
-          "https://images.unsplash.com/photo-1516387938699-a93567ec168e?w=1200&h=675&fit=crop&auto=format&q=80",
+          "https://images.unsplash.com/photo-1516387938699-a93567ec168e?w=1200&h=675&fit=crop&auto=format&q=80      ",
         title: "Interfaz intuitiva",
         desc: "Nuestra plataforma está diseñada para ser fácil de usar, permitiéndote enfocarte en aprender sin distracciones técnicas.",
       },
       {
         image:
-          "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&h=675&fit=crop&auto=format&q=80",
+          "https://images.unsplash.com/photo-1551836022-d5d88e9218df?w=1200&h=675&fit=crop&auto=format&q=80      ",
         title: "Datos en tiempo real",
         desc: "Obtén resultados instantáneos y compara diferentes escenarios para entender mejor el impacto de tus decisiones.",
       },
@@ -271,7 +285,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo suave */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.10),transparent_62%)]" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_bottom,rgba(34,211,238,0.06),transparent_62%)]" />
@@ -279,11 +292,10 @@ export default function Home() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.88)_100%)]" />
       </div>
 
-      {/* ✅ HERO */}
       <section className="relative max-w-6xl mx-auto px-6 pt-14 pb-10">
         <div className="max-w-4xl mx-auto text-center">
           <div className="text-emerald-200/90 font-semibold flex items-center justify-center gap-2 mb-2">
-            <span className="animate-pulse">✨</span>
+            <FaStar className="animate-pulse text-emerald-300" />
             SimuVidaTech • Aprende sobre RAEE de forma interactiva
           </div>
 
@@ -295,25 +307,22 @@ export default function Home() {
             <span className="text-emerald-300">ambiental</span> de tus dispositivos
           </h1>
 
-          {/* ✅ Imagen eco + tecnología */}
           <div className="mt-8">
             <div className="rounded-2xl overflow-hidden border border-white/10 shadow-2xl bg-black/20">
               <div className="relative w-full aspect-[16/7]">
                 <SmartImage
-                  src="https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1600&h=700&fit=crop&auto=format&q=80"
+                  src="https://images.unsplash.com/photo-1593113598332-cd288d649433?w=1600&h=700&fit=crop&auto=format&q=80  "
                   alt="Reciclaje electrónico y tecnología responsable"
                   className="absolute inset-0 w-full h-full object-cover"
                 />
-                {/* overlay sutil para que siempre combine con el fondo */}
                 <div className="absolute inset-0 bg-gradient-to-t from-neutral-950/55 via-neutral-950/10 to-transparent" />
               </div>
             </div>
             <p className="mt-3 text-xs text-white/45">
-              Tecnología responsable • educación ambiental aplicada
+              Tecnologia responsable • educacion ambiental aplicada
             </p>
           </div>
 
-          {/* ✅ SECCIÓN MEJORADA (texto + chips + botones + indicadores) */}
           <div className="mt-8 max-w-3xl mx-auto">
             <p className="text-white/80 text-base sm:text-lg leading-relaxed">
               <span className="text-emerald-200 font-semibold">SimuVidaTech</span>{" "}
@@ -322,10 +331,10 @@ export default function Home() {
             </p>
 
             <div className="mt-5 flex flex-wrap justify-center gap-3">
-              <Chip active icon="🌱" label="Impacto ambiental" />
-              <Chip icon="⚡" label="Eficiencia energética" />
-              <Chip icon="🔄" label="Economía circular" />
-              <Chip icon="📱" label="Dispositivos reales" />
+              <Chip active icon={<FaLeaf className="text-emerald-300" />} label="Impacto ambiental" />
+              <Chip icon={<FaBolt className="text-yellow-300" />} label="Eficiencia energética" />
+              <Chip icon={<FaRecycle className="text-cyan-300" />} label="Economía circular" />
+              <Chip icon={<FaMobileAlt className="text-blue-300" />} label="Dispositivos reales" />
             </div>
 
             <div className="mt-7 flex flex-col sm:flex-row items-stretch justify-center gap-3">
@@ -333,6 +342,7 @@ export default function Home() {
                 onClick={() => navigate("/demo/telefono")}
                 className="sm:min-w-[280px] px-7 py-3.5 rounded-xl font-semibold bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 hover:opacity-95 transition-all shadow-lg shadow-emerald-500/25"
               >
+                <FaPlayCircle className="inline-block mr-2" />
                 Comenzar simulación gratis
               </button>
 
@@ -340,6 +350,7 @@ export default function Home() {
                 onClick={() => navigate("/about")}
                 className="sm:min-w-[220px] px-7 py-3.5 rounded-xl font-semibold border border-white/10 bg-white/[0.03] hover:bg-white/[0.06] transition-all hover:border-emerald-400/30"
               >
+                <FaLightbulb className="inline-block mr-2" />
                 Cómo funciona
               </button>
 
@@ -348,7 +359,8 @@ export default function Home() {
                   onClick={() => navigate("/dashboard")}
                   className="sm:min-w-[160px] px-7 py-3.5 rounded-xl font-semibold border border-white/10 bg-white/[0.02] hover:bg-white/[0.05] transition-all"
                 >
-                  🏠 Panel
+                  <FaChartLine className="inline-block mr-2" />
+                  Panel
                 </button>
               )}
             </div>
@@ -379,7 +391,6 @@ export default function Home() {
         <div className="mt-12 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </section>
 
-      {/* Preview */}
       <section className="relative max-w-6xl mx-auto px-6 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
@@ -395,7 +406,7 @@ export default function Home() {
           <div className="rounded-2xl overflow-hidden border-2 border-white/10 shadow-2xl mb-6 bg-black/20">
             <div className="relative w-full aspect-[16/9]">
               <SmartImage
-                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1600&h=900&fit=crop&auto=format&q=80"
+                src="https://images.unsplash.com/photo-1551288049-bebda4e38f71?w=1600&h=900&fit=crop&auto=format&q=80  "
                 alt="Dashboard SimuVidaTech"
                 className="absolute inset-0 w-full h-full object-cover"
               />
@@ -415,7 +426,6 @@ export default function Home() {
         <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
-      {/* Beneficios */}
       <section className="relative max-w-6xl mx-auto px-6 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
@@ -445,7 +455,6 @@ export default function Home() {
         <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
-      {/* Features */}
       <section className="relative max-w-6xl mx-auto px-6 py-12">
         <div className="max-w-5xl mx-auto">
           <div className="text-center mb-12">
@@ -464,7 +473,7 @@ export default function Home() {
                 image={feature.image}
                 title={feature.title}
                 desc={feature.desc}
-                reverse={idx % 2 === 1}
+                reverse={idx % 2 === 1} 
               />
             ))}
           </div>
@@ -475,7 +484,6 @@ export default function Home() {
         <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
-      {/* Pasos */}
       <section className="relative max-w-6xl mx-auto px-6 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
@@ -505,7 +513,6 @@ export default function Home() {
         <div className="h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
       </div>
 
-      {/* Categorías */}
       <section className="relative max-w-6xl mx-auto px-6 py-12">
         <div className="max-w-3xl mx-auto">
           <h2 className="text-3xl font-bold mb-3">Explora por categoría</h2>
@@ -517,8 +524,8 @@ export default function Home() {
 
         <div className="mt-10 grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto">
           <DeviceCard
-            icon="📱"
-            title="Teléfonos"
+            icon={<FaMobileAlt className="text-blue-400" />}
+            title="Telefonos"
             subtitle="Simula decisiones de uso, reparación y fin de vida de forma rápida."
             tag="Prácticas y comparaciones"
             onExplore={() => navigate("/demo/telefono")}
@@ -528,11 +535,11 @@ export default function Home() {
             onSecondary={() =>
               authenticated ? navigate("/upload/telefono") : navigate("/login")
             }
-            image="https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=1200&h=800&fit=crop&auto=format&q=80"
+            image="https://images.unsplash.com/photo-1598327105666-5b89351aff97?w=1200&h=800&fit=crop&auto=format&q=80      "
           />
 
           <DeviceCard
-            icon="💻"
+            icon={<FaLaptop className="text-purple-400" />}
             title="Laptops"
             subtitle="Evalúa consumo, vida útil y opciones responsables de disposición."
             tag="Enfoque de eficiencia"
@@ -543,15 +550,17 @@ export default function Home() {
             onSecondary={() =>
               authenticated ? navigate("/upload/laptop") : navigate("/login")
             }
-            image="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1200&h=800&fit=crop&auto=format&q=80"
+            image="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1200&h=800&fit=crop&auto=format&q=80      "
           />
         </div>
       </section>
 
-      {/* Footer */}
       <footer className="relative max-w-6xl mx-auto px-6 py-8 mt-12 border-t border-white/10">
         <div className="text-center text-white/50 text-sm">
-          <p className="font-semibold text-white/70">SimuVidaTech</p>
+          <p className="font-semibold text-white/70">
+            <FaUsers className="inline-block mr-2 text-emerald-400" />
+            SimuVidaTech
+          </p>
           <p className="mt-1">Herramienta educativa para conciencia ambiental</p>
           <p className="mt-2 text-xs">
             Resultados con fines educativos • Datos basados en estudios ambientales

@@ -1,10 +1,12 @@
-// src/components/admin/AdminDashboard.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { 
+  FaCubes, FaUsers, FaMobileAlt, FaLaptop, FaChartBar, FaUser, 
+  FaArrowLeft 
+} from "react-icons/fa";
 import api from "../../services/api";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 
-/* ✅ UI helpers (igual al resto del sistema) */
 function Card({ className = "", children, ...props }) {
   return (
     <div
@@ -39,27 +41,33 @@ function ButtonGhost({ className = "", children, ...props }) {
 }
 
 export default function AdminDashboard() {
+  // Estado para almacenar las estadísticas procesadas
   const [stats, setStats] = useState({
     totalDevices: 0,
     totalUsers: 0,
     phoneCount: 0,
     laptopCount: 0,
-    topPhones: [],
-    topLaptops: [],
-    decisionesUso: [],
-    decisionesFinVida: [],
+    topPhones: [],        
+    topLaptops: [],      
+    decisionesUso: [],    
+    decisionesFinVida: [], 
   });
 
+  // Estado para listados completos (vistas de detalle)
   const [devices, setDevices] = useState([]);
   const [users, setUsers] = useState([]);
-  const [view, setView] = useState("dashboard"); // 'dashboard' | 'devices' | 'users'
+  
+  // Control de vista interna: dashboard principal, dispositivos o usuarios
+  const [view, setView] = useState("dashboard"); 
   const [loading, setLoading] = useState(true);
 
   const navigate = useNavigate();
 
+  // Carga inicial de datos al montar el componente
   useEffect(() => {
     const fetchAdminStats = async () => {
       try {
+        // Carga concurrente de tres endpoints para optimizar tiempo
         const [devicesRes, usersRes, decisionsRes] = await Promise.all([
           api.get("/devices/admin"),
           api.get("/users/stats"),
@@ -68,9 +76,12 @@ export default function AdminDashboard() {
 
         const devicesList = devicesRes.data || [];
         const totalDevices = devicesList.length;
+        
+        // Conteo de dispositivos por tipo
         const phoneCount = devicesList.filter((d) => d.type === "telefono").length;
         const laptopCount = devicesList.filter((d) => d.type === "laptop").length;
 
+        // Objetos para agrupar y contar modelos
         const phoneModels = {};
         const laptopModels = {};
 
@@ -94,6 +105,7 @@ export default function AdminDashboard() {
 
         const { decisionesUso = [], decisionesFinVida = [] } = decisionsRes.data || {};
 
+        // Actualiza estado con todas las estadísticas procesadas
         setStats({
           totalDevices,
           totalUsers: usersRes.data?.totalUsers || 0,
@@ -114,6 +126,7 @@ export default function AdminDashboard() {
     fetchAdminStats();
   }, []);
 
+  // Funciones para cambiar vista y cargar datos específicos
   const showAllDevices = async () => {
     try {
       const response = await api.get("/devices/admin");
@@ -158,6 +171,7 @@ export default function AdminDashboard() {
 
   const goBackToDashboard = () => setView("dashboard");
 
+  // Pantalla de carga mientras se obtienen datos
   if (loading)
     return (
       <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
@@ -170,7 +184,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo igual al sistema */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -179,7 +192,6 @@ export default function AdminDashboard() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.55)_100%)]" />
       </div>
 
-      {/* Header sticky */}
       <div className="relative sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur-xl px-4 py-3">
         <div className="max-w-6xl mx-auto flex justify-between items-center gap-3">
           <div>
@@ -189,15 +201,15 @@ export default function AdminDashboard() {
             </h1>
           </div>
 
-          <ButtonGhost onClick={() => navigate("/")}>← Inicio</ButtonGhost>
+          <ButtonGhost onClick={() => navigate("/")}>
+            <FaArrowLeft className="text-sm" /> Inicio
+          </ButtonGhost>
         </div>
       </div>
 
-      {/* Contenido */}
       <div className="relative max-w-6xl mx-auto px-4 py-10">
         {view === "dashboard" ? (
           <>
-            {/* Cards principales (SIN Gestión) */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
               <Card onClick={showAllDevices} className="p-6 cursor-pointer">
                 <div className="flex items-start justify-between gap-4">
@@ -207,7 +219,7 @@ export default function AdminDashboard() {
                     <p className="text-white/45 text-sm mt-2">Ver todos los registros</p>
                   </div>
                   <div className="h-12 w-12 rounded-2xl border border-emerald-400/20 bg-emerald-500/10 flex items-center justify-center">
-                    <span className="text-xl">🧩</span>
+                    <FaCubes className="text-xl text-emerald-300" />
                   </div>
                 </div>
               </Card>
@@ -220,7 +232,7 @@ export default function AdminDashboard() {
                     <p className="text-white/45 text-sm mt-2">Ver listado de usuarios</p>
                   </div>
                   <div className="h-12 w-12 rounded-2xl border border-violet-400/20 bg-violet-500/10 flex items-center justify-center">
-                    <span className="text-xl">👥</span>
+                    <FaUsers className="text-xl text-violet-300" />
                   </div>
                 </div>
               </Card>
@@ -233,12 +245,11 @@ export default function AdminDashboard() {
                     <p className="text-white/45 text-sm mt-2">Filtrar por teléfonos</p>
                   </div>
                   <div className="h-12 w-12 rounded-2xl border border-cyan-400/20 bg-cyan-500/10 flex items-center justify-center">
-                    <span className="text-xl">📱</span>
+                    <FaMobileAlt className="text-xl text-cyan-300" />
                   </div>
                 </div>
               </Card>
 
-              {/* segunda fila (2 cards centradas en desktop) */}
               <div className="lg:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-6">
                 <Card onClick={showLaptops} className="p-6 cursor-pointer">
                   <div className="flex items-start justify-between gap-4">
@@ -248,7 +259,7 @@ export default function AdminDashboard() {
                       <p className="text-white/45 text-sm mt-2">Filtrar por laptops</p>
                     </div>
                     <div className="h-12 w-12 rounded-2xl border border-fuchsia-400/20 bg-fuchsia-500/10 flex items-center justify-center">
-                      <span className="text-xl">💻</span>
+                      <FaLaptop className="text-xl text-fuchsia-300" />
                     </div>
                   </div>
                 </Card>
@@ -263,20 +274,19 @@ export default function AdminDashboard() {
                       </p>
                     </div>
                     <div className="h-12 w-12 rounded-2xl border border-white/10 bg-white/[0.06] flex items-center justify-center">
-                      <span className="text-xl">📊</span>
+                      <FaChartBar className="text-xl text-white/70" />
                     </div>
                   </div>
                 </Card>
               </div>
             </div>
 
-            {/* Gráficos top modelos */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Modelos de teléfonos más registrados</h3>
-                <div className="h-[280px] w-full">
+                <div className="h-[280px] min-h-[280px] w-full min-w-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.topPhones}>
+                    <BarChart data={stats.topPhones.length > 0 ? stats.topPhones : [{name: 'Sin datos', value: 0}]}>
                       <XAxis dataKey="name" stroke="rgba(255,255,255,0.55)" />
                       <YAxis stroke="rgba(255,255,255,0.55)" />
                       <Tooltip
@@ -297,9 +307,9 @@ export default function AdminDashboard() {
 
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Modelos de laptops más registrados</h3>
-                <div className="h-[280px] w-full">
+                <div className="h-[280px] min-h-[280px] w-full min-w-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.topLaptops}>
+                    <BarChart data={stats.topLaptops.length > 0 ? stats.topLaptops : [{name: 'Sin datos', value: 0}]}>
                       <XAxis dataKey="name" stroke="rgba(255,255,255,0.55)" />
                       <YAxis stroke="rgba(255,255,255,0.55)" />
                       <Tooltip
@@ -319,13 +329,12 @@ export default function AdminDashboard() {
               </Card>
             </div>
 
-            {/* Gráficos decisiones */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Decisiones en etapa de uso</h3>
-                <div className="h-[280px] w-full">
+                <div className="h-[280px] min-h-[280px] w-full min-w-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.decisionesUso}>
+                    <BarChart data={stats.decisionesUso.length > 0 ? stats.decisionesUso : [{name: 'Sin datos', value: 0}]}>
                       <XAxis dataKey="name" stroke="rgba(255,255,255,0.55)" />
                       <YAxis stroke="rgba(255,255,255,0.55)" />
                       <Tooltip
@@ -346,9 +355,9 @@ export default function AdminDashboard() {
 
               <Card className="p-6">
                 <h3 className="font-semibold mb-4">Decisiones en etapa de fin de vida</h3>
-                <div className="h-[280px] w-full">
+                <div className="h-[280px] min-h-[280px] w-full min-w-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={stats.decisionesFinVida}>
+                    <BarChart data={stats.decisionesFinVida.length > 0 ? stats.decisionesFinVida : [{name: 'Sin datos', value: 0}]}>
                       <XAxis dataKey="name" stroke="rgba(255,255,255,0.55)" />
                       <YAxis stroke="rgba(255,255,255,0.55)" />
                       <Tooltip
@@ -371,7 +380,7 @@ export default function AdminDashboard() {
         ) : view === "devices" ? (
           <>
             <ButtonGhost onClick={goBackToDashboard} className="mb-6">
-              ← Volver al dashboard
+              <FaArrowLeft className="text-sm" /> Volver al dashboard
             </ButtonGhost>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -382,7 +391,13 @@ export default function AdminDashboard() {
                   onClick={() => navigate(`/admin/device/${device.id}`)}
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">{device.type === "telefono" ? "📱" : "💻"}</span>
+                    <span className="text-2xl">
+                      {device.type === "telefono" ? (
+                        <FaMobileAlt className="text-blue-400" />
+                      ) : (
+                        <FaLaptop className="text-purple-400" />
+                      )}
+                    </span>
                     <div className="min-w-0">
                       <h3 className="font-semibold truncate">{device.model}</h3>
                       <p className="text-white/60 text-sm">
@@ -414,14 +429,16 @@ export default function AdminDashboard() {
         ) : (
           <>
             <ButtonGhost onClick={goBackToDashboard} className="mb-6">
-              ← Volver al dashboard
+              <FaArrowLeft className="text-sm" /> Volver al dashboard
             </ButtonGhost>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
               {users.map((user) => (
                 <Card key={user.id} className="p-5">
                   <div className="flex items-start gap-3">
-                    <span className="text-2xl">👤</span>
+                    <span className="text-2xl">
+                      <FaUser className="text-emerald-400" />
+                    </span>
                     <div className="min-w-0">
                       <h3 className="font-semibold truncate">{user.name}</h3>
                       <p className="text-white/60 text-sm truncate">{user.email}</p>

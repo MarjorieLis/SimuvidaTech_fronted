@@ -1,15 +1,19 @@
-// src/components/devices/MyDevices.jsx
+// Componente que muestra los dispositivos registrados por el usuario con filtrado y acciones
+
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaList, FaMobileAlt, FaLaptop, FaTrash, FaPlayCircle } from "react-icons/fa";
 import api from "../../services/api";
 
 export default function MyDevices() {
+  // Estado para almacenar los dispositivos del usuario
   const [devices, setDevices] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [filter, setFilter] = useState("all");
+  const [loading, setLoading] = useState(true); // Estado de carga
+  const [error, setError] = useState(""); // Mensaje de error
+  const [filter, setFilter] = useState("all"); // Filtro: "all", "telefono", "laptop"
   const navigate = useNavigate();
 
+  // Carga los dispositivos del usuario al montar el componente
   useEffect(() => {
     const fetchDevices = async () => {
       try {
@@ -19,30 +23,35 @@ export default function MyDevices() {
         console.error("Error al cargar dispositivos:", err);
         setError("No se pudieron cargar tus dispositivos");
       } finally {
-        setLoading(false);
+        setLoading(false); // Siempre desactiva el estado de carga
       }
     };
     fetchDevices();
   }, []);
 
+  // Filtra dispositivos según el filtro seleccionado
   const filteredDevices =
     filter === "all" ? devices : devices.filter((d) => d.type === filter);
 
+  // Maneja la eliminación de un dispositivo
   const handleDelete = async (id) => {
+    // Confirmación antes de eliminar
     if (!window.confirm("¿Estás seguro de que deseas eliminar este dispositivo?")) {
       return;
     }
 
     try {
       await api.delete(`/devices/${id}`);
+      // Actualiza la lista eliminando el dispositivo
       setDevices((prev) => prev.filter((d) => d.id !== id));
-      alert("✅ Dispositivo eliminado correctamente.");
+      alert("Dispositivo eliminado correctamente.");
     } catch (err) {
       console.error("Error al eliminar dispositivo:", err);
-      alert("❌ No se pudo eliminar el dispositivo. Intenta nuevamente.");
+      alert("No se pudo eliminar el dispositivo. Intenta nuevamente.");
     }
   };
 
+  // Pantalla de carga mientras se obtienen los datos
   if (loading)
     return (
       <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
@@ -55,7 +64,6 @@ export default function MyDevices() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo premium */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -69,7 +77,7 @@ export default function MyDevices() {
           <div>
             <p className="text-sm text-emerald-200/90 font-medium">Tus dispositivos</p>
             <h1 className="mt-1 text-3xl md:text-4xl font-semibold flex items-center gap-3">
-              <span className="text-2xl">📱</span> Mis dispositivos
+              <FaList className="text-2xl text-emerald-400" /> Mis dispositivos
             </h1>
             <p className="mt-2 text-white/65">
               Aquí están todos los dispositivos que has registrado.
@@ -84,7 +92,6 @@ export default function MyDevices() {
           </button>
         </div>
 
-        {/* Filtros */}
         <div className="flex flex-wrap gap-3 mb-6">
           <button
             onClick={() => setFilter("all")}
@@ -101,10 +108,11 @@ export default function MyDevices() {
             onClick={() => setFilter("telefono")}
             className={`px-4 py-2 rounded-lg text-sm transition ${
               filter === "telefono"
-                ? "bg-emerald-500 text-neutral-950"
-                : "bg-white/5 text-white/70 hover:bg-white/10"
+                ? "bg-emerald-500 text-neutral-950 flex items-center gap-2"
+                : "bg-white/5 text-white/70 hover:bg-white/10 flex items-center gap-2"
             }`}
           >
+            <FaMobileAlt className="text-lg" />
             Teléfonos ({devices.filter((d) => d.type === "telefono").length})
           </button>
 
@@ -112,15 +120,15 @@ export default function MyDevices() {
             onClick={() => setFilter("laptop")}
             className={`px-4 py-2 rounded-lg text-sm transition ${
               filter === "laptop"
-                ? "bg-emerald-500 text-neutral-950"
-                : "bg-white/5 text-white/70 hover:bg-white/10"
+                ? "bg-emerald-500 text-neutral-950 flex items-center gap-2"
+                : "bg-white/5 text-white/70 hover:bg-white/10 flex items-center gap-2"
             }`}
           >
+            <FaLaptop className="text-lg" />
             Laptops ({devices.filter((d) => d.type === "laptop").length})
           </button>
         </div>
 
-        {/* Lista */}
         {error ? (
           <div className="bg-red-500/10 border border-red-500/30 p-4 rounded-xl text-red-200">
             {error}
@@ -138,6 +146,7 @@ export default function MyDevices() {
             </button>
           </div>
         ) : (
+  
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
             {filteredDevices.map((device) => (
               <div
@@ -145,10 +154,9 @@ export default function MyDevices() {
                 className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur-xl hover:bg-white/10 transition"
               >
                 <div className="flex items-start justify-between gap-3">
-                  {/* Info */}
                   <div className="flex items-start gap-3 min-w-0">
-                    <span className="text-2xl shrink-0">
-                      {device.type === "telefono" ? "📱" : "💻"}
+                    <span className="text-2xl shrink-0 text-emerald-400">
+                      {device.type === "telefono" ? <FaMobileAlt /> : <FaLaptop />}
                     </span>
 
                     <div className="min-w-0">
@@ -162,7 +170,6 @@ export default function MyDevices() {
                     </div>
                   </div>
 
-                  {/* Acciones (MISMA ALTURA / MISMA ALINEACIÓN) */}
                   <div className="flex items-center gap-2 shrink-0">
                     <button
                       onClick={() => navigate(`/simulation/${device.id}`)}
@@ -173,6 +180,7 @@ export default function MyDevices() {
                                  border border-emerald-400/20
                                  hover:bg-emerald-500/20 hover:text-emerald-100 transition"
                     >
+                      <FaPlayCircle className="mr-1 text-base" />
                       Ver simulación
                     </button>
 
@@ -186,7 +194,7 @@ export default function MyDevices() {
                                  border border-red-400/20
                                  hover:bg-red-500/20 hover:text-red-100 transition"
                     >
-                      <span className="text-base leading-none">🗑️</span>
+                      <FaTrash />
                     </button>
                   </div>
                 </div>

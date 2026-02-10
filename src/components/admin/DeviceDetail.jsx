@@ -1,9 +1,9 @@
 // src/components/admin/DeviceDetail.jsx
 import { useState, useEffect } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { FaMobileAlt, FaLaptop, FaCalendar, FaCheck, FaClock } from "react-icons/fa";
 import api from "../../services/api";
 
-/* ✅ UI helpers */
 function Card({ className = "", children }) {
   return (
     <div
@@ -115,7 +115,6 @@ export default function DeviceDetail() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo igual al sistema */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -124,7 +123,6 @@ export default function DeviceDetail() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.55)_100%)]" />
       </div>
 
-      {/* Header */}
       <div className="relative sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur-xl px-4 py-3">
         <div className="max-w-5xl mx-auto flex justify-between items-center gap-3">
           <div className="min-w-0">
@@ -148,13 +146,17 @@ export default function DeviceDetail() {
         </div>
       </div>
 
-      {/* Contenido */}
       <div className="relative max-w-5xl mx-auto px-4 py-10">
         <Card className="p-7">
-          {/* Header del card */}
           <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
             <div className="flex items-start gap-4">
-              <span className="text-3xl">{device.type === "telefono" ? "📱" : "💻"}</span>
+              <span className="text-3xl">
+                {device.type === "telefono" ? (
+                  <FaMobileAlt className="text-blue-400" />
+                ) : (
+                  <FaLaptop className="text-purple-400" />
+                )}
+              </span>
               <div className="min-w-0">
                 <h2 className="text-2xl sm:text-3xl font-semibold truncate">{device.model}</h2>
                 <p className="text-white/60 mt-1">
@@ -166,24 +168,31 @@ export default function DeviceDetail() {
 
             <div className="flex flex-wrap gap-2">
               <Pill className="border-white/10 bg-white/[0.04] text-white/70">
-                🗓️ {new Date(device.created_at).toLocaleDateString()}
+                <FaCalendar className="text-base" /> {new Date(device.created_at).toLocaleDateString()}
               </Pill>
               <Pill
                 className={[
                   "border",
                   device.reviewed
-                    ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200"
-                    : "border-amber-400/20 bg-amber-500/10 text-amber-200",
+                    ? "border-emerald-400/20 bg-emerald-500/10 text-emerald-200 flex items-center gap-1"
+                    : "border-amber-400/20 bg-amber-500/10 text-amber-200 flex items-center gap-1",
                 ].join(" ")}
               >
-                {device.reviewed ? "✅ Aprobado" : "⏳ Pendiente"}
+                {device.reviewed ? (
+                  <>
+                    <FaCheck className="text-base" /> Aprobado
+                  </>
+                ) : (
+                  <>
+                    <FaClock className="text-base" /> Pendiente
+                  </>
+                )}
               </Pill>
             </div>
           </div>
 
           <div className="mt-6 h-px w-full bg-gradient-to-r from-transparent via-white/10 to-transparent" />
 
-          {/* Métricas */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-3 gap-4">
             <Metric
               title="Impacto CO₂"
@@ -205,7 +214,6 @@ export default function DeviceDetail() {
             />
           </div>
 
-          {/* Materiales */}
           <div className="mt-6">
             <h3 className="font-semibold mb-2">Materiales utilizados</h3>
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4 text-white/75">
@@ -213,7 +221,6 @@ export default function DeviceDetail() {
             </div>
           </div>
 
-          {/* Extra info */}
           <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
               <p className="text-xs uppercase tracking-[0.18em] text-white/50">Registro</p>

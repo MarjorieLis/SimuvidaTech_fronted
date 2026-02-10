@@ -1,12 +1,18 @@
-// src/components/simulation/Results.jsx
+// Componente de resultados finales con visualización de impacto ambiental, recomendaciones y generación de certificados
 import { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
+import { 
+  FaChartBar, FaLeaf, FaTint, FaRecycle, FaBullseye, FaDownload, FaMapMarkerAlt,
+  FaCheck, FaBullhorn, FaChartLine, FaPrint, FaLightbulb, FaCheckCircle, FaTimes,
+  FaGraduationCap, FaCalendarAlt, FaMapMarkedAlt, FaInfoCircle, FaArrowLeft, 
+  FaClock, FaUser, FaLaptop
+} from "react-icons/fa";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import api from "../../services/api";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
 
-/* ✅ Función robusta para obtener el nombre del usuario desde localStorage */
+// Función robusta para obtener el nombre del usuario desde localStorage
 const getUserNameFromStorage = () => {
   try {
     const possibleKeys = ["user", "userData", "profile", "authUser"];
@@ -30,7 +36,6 @@ const getUserNameFromStorage = () => {
   }
 };
 
-/* ✅ UI helpers (mismo estilo del Home/Dashboard) */
 function Card({ className = "", children }) {
   return (
     <div
@@ -95,23 +100,24 @@ function Pill({ className = "", children }) {
 }
 
 export default function Results() {
+  // Estado para datos del dispositivo y resultados
   const [device, setDevice] = useState(null);
   const [impact, setImpact] = useState({ CO2: 0, agua: 0, residuos: 0, score: 0 });
   const [decisionData, setDecisionData] = useState({ uso: "No registrada", finVida: "No registrada" });
 
-  // ✅ certificado dentro de la página
+  // Estado para certificado de compromiso
   const [certData, setCertData] = useState(null);
 
-  // ✅ refs separados: uno para scroll, otro para capturar PDF
+  // Referencias para scroll y captura de certificado
   const certScrollRef = useRef(null);
   const certCaptureRef = useRef(null);
 
   const navigate = useNavigate();
   const { id } = useParams();
   const location = useLocation();
-
   const { years, decision, impact: initialImpact } = location.state || {};
 
+  //Carga datos del dispositivo y calcula impacto inicial basado en decisiones
   useEffect(() => {
     const loadData = async () => {
       try {
@@ -145,57 +151,57 @@ export default function Results() {
     loadData();
   }, [id, navigate, location.state, years, decision, initialImpact]);
 
+  // Normaliza decisión de fin de vida para lógica condicional
   const finVidaNormalized = useMemo(
     () => (decisionData.finVida || "").toLowerCase().trim(),
     [decisionData.finVida]
   );
 
+  // Determina si mostrar sección de Punto Verde (solo para reciclar/donar)
   const showPuntoVerde = finVidaNormalized === "reciclar" || finVidaNormalized === "donar";
 
+  //Genera recomendaciones personalizadas según decisión de fin de vida
   const getRecommendations = () => {
     switch (finVidaNormalized) {
       case "tirar":
         return [
-          "💡 Considera donar tu dispositivo. ¡Puede seguir siendo útil!",
-          "♻️ Busca puntos de reciclaje autorizados en tu ciudad.",
-          "🔋 Retira la batería antes de desechar. Es un residuo peligroso.",
+          "Considera donar tu dispositivo. ¡Puede seguir siendo útil!",
+          "Busca puntos de reciclaje autorizados en tu ciudad.",
+          "Retira la batería antes de desechar. Es un residuo peligroso."
         ];
       case "donar":
         return [
-          "✅ ¡Excelente decisión! Donar extiende la vida útil del dispositivo.",
-          "📍 Entrega tu dispositivo en el Punto Verde UIDE - Campus Loja.",
-          "📱 Asegúrate de borrar todos tus datos antes de entregarlo.",
+          "¡Excelente decisión! Donar extiende la vida útil del dispositivo.",
+          "Entrega tu dispositivo en el Punto Verde UIDE - Campus Loja.",
+          "Asegúrate de borrar todos tus datos antes de entregarlo."
         ];
       case "reciclar":
         return [
-          "✅ ¡Excelente decisión! El reciclaje reduce hasta el 80% de emisiones.",
-          "📱 Guarda tus datos en la nube antes de entregar el dispositivo.",
-          "Comparte esta acción en redes para inspirar a otros.",
+          "¡Excelente decisión! El reciclaje reduce hasta el 80% de emisiones.",
+          "Guarda tus datos en la nube antes de entregar el dispositivo.",
+          "Comparte esta acción en redes para inspirar a otros."
         ];
       case "reparar":
         return [
-          "🛠️ Reparar extiende la vida útil y reduce la demanda de nuevos recursos.",
-          "🔧 Busca técnicos certificados para una reparación segura.",
-          "❤️ C reparación evita residuos electrónicos innecesarios.",
+          "Reparar extiende la vida útil y reduce la demanda de nuevos recursos.",
+          "Busca técnicos certificados para una reparación segura.",
+          "La reparación evita residuos electrónicos innecesarios."
         ];
       default:
         return [];
     }
   };
 
-  // ✅✅✅ MEJORA: Informe PDF ocupa A4 completo + multi-página (sin deformar)
+  //Genera PDF del informe completo de impacto ambiental
   const handleDownloadPDF = async () => {
     if (!device) return;
 
     const recommendations = getRecommendations();
+    const A4_W = 794; 
+    const A4_H = 1123; 
 
-    // A4 en pixeles aprox (96dpi)
-    const A4_W = 794;
-    const A4_H = 1123;
-
+    // Crear contenedor oculto para renderizado del PDF
     const pdfContent = document.createElement("div");
-
-    // “Lienzo” A4 real
     pdfContent.style.width = `${A4_W}px`;
     pdfContent.style.minHeight = `${A4_H}px`;
     pdfContent.style.padding = "52px";
@@ -203,13 +209,12 @@ export default function Results() {
     pdfContent.style.fontFamily = "Inter, Arial, sans-serif";
     pdfContent.style.background = "#ffffff";
     pdfContent.style.color = "#0f172a";
-
-    // oculto fuera de la pantalla
     pdfContent.style.position = "fixed";
     pdfContent.style.left = "-10000px";
     pdfContent.style.top = "0";
     pdfContent.style.borderRadius = "0";
 
+    // Función helper para crear badges en el PDF
     const badge = (label, value) => `
       <div style="
         display:inline-flex; gap:10px; align-items:center;
@@ -221,6 +226,7 @@ export default function Results() {
       </div>
     `;
 
+    // Contenido HTML del informe
     pdfContent.innerHTML = `
       <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:18px;
         padding:18px 18px 14px; border-radius:16px;
@@ -297,22 +303,18 @@ export default function Results() {
       });
 
       const imgData = canvas.toDataURL("image/png");
-
       const pdf = new jsPDF("p", "mm", "a4");
       const pageW = 210;
       const pageH = 297;
-
       const imgW = pageW;
       const imgH = (canvas.height * imgW) / canvas.width;
 
-      // 1 página
+      // Manejo de múltiples páginas si el contenido es largo
       if (imgH <= pageH) {
         pdf.addImage(imgData, "PNG", 0, 0, imgW, imgH);
       } else {
-        // multi-página sin deformar
         let heightLeft = imgH;
         let position = 0;
-
         pdf.addImage(imgData, "PNG", 0, position, imgW, imgH);
         heightLeft -= pageH;
 
@@ -328,13 +330,14 @@ export default function Results() {
       pdf.save(`simuvidatech_${device.type}_${cleanModel}.pdf`);
     } catch (err) {
       console.error("Error al generar PDF:", err);
-      alert("❌ Error al generar el PDF. Intenta nuevamente.");
+      alert("Error al generar el PDF. Intenta nuevamente.");
     } finally {
       document.body.removeChild(pdfContent);
     }
   };
 
-  // ✅ Generar certificado dentro de la misma vista
+  //Genera certificado de compromiso de entrega
+    
   const handleConfirmCommitment = () => {
     if (!device) return;
 
@@ -351,11 +354,14 @@ export default function Results() {
       ).padStart(2, "0")}-${Math.random().toString(16).slice(2, 8).toUpperCase()}`,
     });
 
+    // Scrolleo suave al certificado después de generarlo
     setTimeout(() => {
       certScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
     }, 200);
   };
 
+  //Genera PDF del certificado de compromiso
+  
   const handleDownloadCertificatePDF = async () => {
     if (!certCaptureRef.current || !device) return;
 
@@ -368,20 +374,15 @@ export default function Results() {
 
       const imgData = canvas.toDataURL("image/png");
       const pdf = new jsPDF("l", "mm", "a4");
-
       const pageW = 297;
       const pageH = 210;
       const margin = 4;
-
       const maxW = pageW - margin * 2;
       const maxH = pageH - margin * 2;
-
       const imgW = maxW;
       const imgH = (canvas.height * imgW) / canvas.width;
-
       const finalH = imgH > maxH ? maxH : imgH;
       const finalW = imgH > maxH ? (canvas.width * finalH) / canvas.height : imgW;
-
       const x = (pageW - finalW) / 2;
       const y = (pageH - finalH) / 2;
 
@@ -389,10 +390,11 @@ export default function Results() {
       pdf.save(`certificado_raee_${device.model.replace(/\s+/g, "_")}.pdf`);
     } catch (err) {
       console.error("Error certificado PDF:", err);
-      alert("❌ No se pudo generar el certificado. Intenta nuevamente.");
+      alert("No se pudo generar el certificado. Intenta nuevamente.");
     }
   };
 
+  // Pantalla de carga mientras se obtienen datos del dispositivo
   if (!device) {
     return (
       <div className="min-h-screen bg-neutral-950 text-white flex items-center justify-center">
@@ -406,7 +408,6 @@ export default function Results() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -416,12 +417,11 @@ export default function Results() {
       </div>
 
       <div className="relative max-w-6xl mx-auto px-4 py-12">
-        {/* header */}
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <p className="text-sm text-emerald-200/90 font-medium">Simulación completada</p>
             <h1 className="mt-1 text-3xl md:text-4xl font-semibold flex items-center gap-3">
-              <span className="text-2xl">📊</span> Resultados finales
+              <FaChartBar className="text-2xl text-emerald-300" /> Resultados finales
             </h1>
             <p className="mt-2 text-white/65 max-w-2xl">
               Tu {device.type} <strong>{device.model}</strong> ha sido evaluado.
@@ -429,24 +429,27 @@ export default function Results() {
 
             <div className="mt-3 flex flex-wrap gap-2">
               <Pill className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200">
-                🌿 CO₂: <b className="text-white/90">{impact.CO2}</b> kg
+                <FaLeaf className="text-base" /> CO₂: <b className="text-white/90">{impact.CO2}</b> kg
               </Pill>
               <Pill className="border-cyan-400/20 bg-cyan-500/10 text-cyan-200">
-                💧 Agua: <b className="text-white/90">{impact.agua}</b> L
+                <FaTint className="text-base" /> Agua: <b className="text-white/90">{impact.agua}</b> L
               </Pill>
               <Pill className="border-lime-400/20 bg-lime-500/10 text-lime-200">
-                ♻️ RAEE: <b className="text-white/90">{impact.residuos}</b> kg
+                <FaRecycle className="text-base" /> RAEE: <b className="text-white/90">{impact.residuos}</b> kg
               </Pill>
             </div>
           </div>
 
-          <ButtonGhost onClick={() => navigate("/dashboard")}>← Volver al Dashboard</ButtonGhost>
+          <ButtonGhost onClick={() => navigate("/dashboard")}>
+            <FaArrowLeft className="text-sm" /> Volver al Dashboard
+          </ButtonGhost>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* izquierda */}
           <Card className="p-8">
-            <h2 className="text-2xl font-semibold mb-6">🎯 Tus decisiones</h2>
+            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+              <FaBullseye className="text-xl text-emerald-300" /> Tus decisiones
+            </h2>
 
             <div className="space-y-5">
               <div className="bg-emerald-500/10 border border-emerald-400/20 rounded-2xl p-4">
@@ -461,7 +464,9 @@ export default function Results() {
             </div>
 
             <div className="mt-8">
-              <h3 className="font-semibold text-lg mb-3">💡 Recomendaciones personalizadas</h3>
+              <h3 className="font-semibold text-lg mb-3 flex items-center gap-2">
+                <FaLightbulb className="text-lg text-yellow-300" /> Recomendaciones personalizadas
+              </h3>
               <ul className="text-sm space-y-2 text-white/75">
                 {getRecommendations().map((rec, i) => (
                   <li key={i} className="flex items-start gap-2">
@@ -473,23 +478,32 @@ export default function Results() {
             </div>
 
             <div className="mt-8 pt-6 border-t border-white/10">
-              <ButtonPrimary onClick={handleDownloadPDF}>📄 Descargar informe completo</ButtonPrimary>
+              <ButtonPrimary onClick={handleDownloadPDF}>
+                <FaDownload className="text-base" /> Descargar informe completo
+              </ButtonPrimary>
               <p className="mt-2 text-xs text-white/45">Resultados estimados con fines educativos.</p>
             </div>
 
-            {/* Punto verde */}
             {showPuntoVerde && (
               <div className="mt-8 rounded-3xl border border-white/10 bg-white/[0.04] p-6">
-                <h3 className="text-xl font-semibold mb-4">📍 Punto Verde UIDE – Campus Loja</h3>
+                <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <FaMapMarkerAlt className="text-xl text-emerald-300" /> Punto Verde UIDE – Campus Loja
+                </h3>
 
                 <div className="mb-4 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-400/20">
-                  <p className="font-semibold text-emerald-200">✅ ¡Tu decisión tiene impacto real!</p>
-                  <p className="text-sm text-white/70 mt-1">Entrega tu dispositivo en nuestro punto verde institucional.</p>
+                  <p className="font-semibold text-emerald-200">
+                    <FaCheck className="inline-block mr-1" /> ¡Tu decisión tiene impacto real!
+                  </p>
+                  <p className="text-sm text-white/70 mt-1">
+                    Entrega tu dispositivo en nuestro punto verde institucional.
+                  </p>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <h4 className="font-semibold text-emerald-200 mb-2">✅ Aceptamos</h4>
+                    <h4 className="font-semibold text-emerald-200 mb-2 flex items-center gap-1">
+                      <FaCheckCircle className="text-sm" /> Aceptamos
+                    </h4>
                     <ul className="text-sm text-white/70 space-y-1">
                       <li>• Laptops y computadoras</li>
                       <li>• Teléfonos móviles</li>
@@ -499,7 +513,9 @@ export default function Results() {
                   </div>
 
                   <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
-                    <h4 className="font-semibold text-red-200 mb-2">❌ No aceptamos</h4>
+                    <h4 className="font-semibold text-red-200 mb-2 flex items-center gap-1">
+                      <FaTimes className="text-sm text-red-300" /> No aceptamos
+                    </h4>
                     <ul className="text-sm text-white/70 space-y-1">
                       <li>• Baterías sueltas</li>
                       <li>• Electrodomésticos grandes</li>
@@ -509,26 +525,29 @@ export default function Results() {
                 </div>
 
                 <div className="mb-4 p-4 rounded-2xl bg-white/[0.04] border border-white/10">
-                  <h4 className="font-semibold text-white mb-1">🕒 Horarios piloto</h4>
+                  <h4 className="font-semibold text-white mb-1">
+                    <FaClock className="inline-block mr-1 text-emerald-300" /> Horarios piloto
+                  </h4>
                   <p className="text-sm text-white/70">Lunes a viernes: 8:00 – 17:00</p>
                   <p className="text-sm text-white/70">Ubicación: Edificio Central, Planta Baja</p>
                 </div>
 
                 <a
-                  href="https://www.google.com/maps?q=-3.9721021  ,-79.1991272"
+                  href="https://www.google.com/maps?q=-3.9721021,-79.1991272"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="w-full inline-flex items-center justify-center gap-2 h-11 px-5 rounded-2xl font-semibold
                     bg-white/[0.04] border border-white/10 text-white/80 hover:bg-white/[0.06] hover:text-white transition"
                 >
-                  🗺️ Cómo llegar a UIDE – Campus Loja
+                  <FaMapMarkerAlt className="text-base" /> Cómo llegar a UIDE – Campus Loja
                 </a>
 
                 <div className="mt-6">
-                  <ButtonPrimary onClick={handleConfirmCommitment}>✅ Declarar mi intención de entregar</ButtonPrimary>
+                  <ButtonPrimary onClick={handleConfirmCommitment}>
+                    <FaCheck className="text-base" /> Declarar mi intención de entregar
+                  </ButtonPrimary>
                 </div>
 
-                {/* ✅ Certificado integrado (tal cual lo tienes) */}
                 {certData && (
                   <div ref={certScrollRef} className="mt-6">
                     <div ref={certCaptureRef} className="bg-white rounded-3xl p-0 overflow-hidden">
@@ -549,7 +568,7 @@ export default function Results() {
                           <div className="flex items-start justify-between gap-4">
                             <div className="flex items-start gap-3">
                               <div className="h-12 w-12 rounded-xl border border-slate-200 bg-slate-50 flex items-center justify-center shrink-0">
-                                <span className="text-xl">🎓</span>
+                                <FaGraduationCap className="text-2xl text-slate-700" />
                               </div>
                               <div>
                                 <p className="text-[11px] uppercase tracking-[0.28em] text-slate-500 leading-snug">
@@ -565,7 +584,7 @@ export default function Results() {
                               <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Código</p>
                               <p className="mt-1 font-mono text-sm text-emerald-700">{certData.code}</p>
                               <div className="mt-2 inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-emerald-200 bg-emerald-50 text-emerald-800 text-xs font-semibold">
-                                ♻️ Programa RAEE
+                                <FaRecycle className="text-xs mr-1" /> Programa RAEE
                               </div>
                             </div>
                           </div>
@@ -585,7 +604,9 @@ export default function Results() {
                           <div className="mt-7 flex-1">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-5">
                               <div>
-                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Otorgado a</p>
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                                  <FaUser className="inline-block mr-1 text-xs" /> Otorgado a
+                                </p>
                                 <div className="mt-2 border-b border-slate-300 pb-2">
                                   <p className="text-lg font-semibold text-slate-900 leading-snug break-words">
                                     {certData.userName}
@@ -594,7 +615,9 @@ export default function Results() {
                               </div>
 
                               <div>
-                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Dispositivo</p>
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                                  <FaLaptop className="inline-block mr-1 text-xs" /> Dispositivo
+                                </p>
                                 <div className="mt-2 border-b border-slate-300 pb-2">
                                   <p className="text-lg font-semibold text-slate-900 leading-snug break-words">
                                     {certData.device}
@@ -603,7 +626,9 @@ export default function Results() {
                               </div>
 
                               <div>
-                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Fecha y hora</p>
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                                  <FaCalendarAlt className="inline-block mr-1 text-xs" /> Fecha y hora
+                                </p>
                                 <div className="mt-2 border-b border-slate-300 pb-2">
                                   <p className="text-base font-semibold text-slate-900 leading-snug break-words">
                                     {certData.dateTime}
@@ -612,7 +637,9 @@ export default function Results() {
                               </div>
 
                               <div>
-                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">Lugar</p>
+                                <p className="text-[11px] uppercase tracking-[0.22em] text-slate-500">
+                                  <FaMapMarkedAlt className="inline-block mr-1 text-xs" /> Lugar
+                                </p>
                                 <div className="mt-2 border-b border-slate-300 pb-2">
                                   <p className="text-base font-semibold text-slate-900 leading-snug break-words">
                                     {certData.place}
@@ -630,7 +657,7 @@ export default function Results() {
                               <div className="flex md:justify-end justify-center">
                                 <div className="h-24 w-24 rounded-full border-[5px] border-emerald-600/25 bg-emerald-50 flex items-center justify-center relative">
                                   <div className="h-16 w-16 rounded-full border border-emerald-600/25 bg-white flex items-center justify-center">
-                                    <span className="text-2xl">🌿</span>
+                                    <FaLeaf className="text-2xl text-emerald-700" />
                                   </div>
                                   <div className="absolute -bottom-3 text-[10px] tracking-[0.18em] uppercase text-emerald-800 font-semibold">
                                     validado
@@ -639,27 +666,30 @@ export default function Results() {
                               </div>
                             </div>
                           </div>
-                          {/* sin footer */}
                         </div>
                       </div>
                     </div>
 
                     <div className="mt-5 flex flex-col sm:flex-row gap-3">
-                      <ButtonPrimary onClick={handleDownloadCertificatePDF}>📄 Descargar certificado (PDF)</ButtonPrimary>
+                      <ButtonPrimary onClick={handleDownloadCertificatePDF}>
+                        <FaDownload className="text-base" /> Descargar certificado (PDF)
+                      </ButtonPrimary>
 
                       <button
                         onClick={() => window.print()}
                         className="w-full h-11 px-5 rounded-2xl font-semibold bg-white/[0.04] border border-white/10
                           text-white/80 hover:bg-white/[0.06] hover:text-white transition"
                       >
-                        🖨️ Imprimir
+                        <FaPrint className="text-base mr-1" /> Imprimir
                       </button>
                     </div>
                   </div>
                 )}
 
                 <div className="mt-6 p-4 rounded-2xl border border-white/10 bg-white/[0.04]">
-                  <h4 className="font-semibold text-white mb-2">📣 ¡Únete a nuestra campaña!</h4>
+                  <h4 className="font-semibold text-white mb-2 flex items-center gap-2">
+                    <FaBullhorn className="text-lg text-emerald-300" /> ¡Únete a nuestra campaña!
+                  </h4>
                   <p className="text-sm text-white/70 leading-relaxed">
                     ¿Tienes más dispositivos para donar? <br />
                     <b className="text-white">UIDE organiza campañas mensuales</b> de recolección RAEE. <br />
@@ -670,9 +700,10 @@ export default function Results() {
             )}
           </Card>
 
-          {/* derecha */}
           <Card className="p-8">
-            <h2 className="text-2xl font-semibold mb-6">📈 Impacto ambiental final</h2>
+            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+              <FaChartLine className="text-xl text-emerald-300" /> Impacto ambiental final
+            </h2>
 
             <div className="rounded-2xl border border-white/10 bg-black/20 p-4">
               <div className="h-64 min-h-[16rem]">
@@ -718,7 +749,10 @@ export default function Results() {
                 />
               </div>
 
-              <p className="mt-4 text-sm text-white/55">Comparado con el promedio de dispositivos similares.</p>
+              <p className="mt-4 text-sm text-white/55">
+                <FaInfoCircle className="inline-block mr-1 text-xs" />
+                Comparado con el promedio de dispositivos similares.
+              </p>
             </div>
           </Card>
         </div>

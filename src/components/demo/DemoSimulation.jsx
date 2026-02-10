@@ -1,18 +1,25 @@
-// src/components/demo/DemoSimulation.jsx
+// Simulacion demo interactiva: muestra el ciclo de vida de dispositivos y calcula impacto ambiental en tiempo real
+
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { FaMobileAlt, FaLaptop, FaChartBar, FaLightbulb, FaRecycle, FaBatteryFull, FaGlobe, FaHandshake, FaBox, FaHeart } from "react-icons/fa";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 
 export default function DemoSimulation() {
-  const { type } = useParams(); // 'telefono' o 'laptop'
+  const { type } = useParams(); 
   const navigate = useNavigate();
   
-  const [currentStage, setCurrentStage] = useState(1); // 1 a 5
-  const [decisionUso, setDecisionUso] = useState('2 años');
-  const [decisionFin, setDecisionFin] = useState('reciclar');
+  // Estado: etapa actual del ciclo de vida (1-5)
+  const [currentStage, setCurrentStage] = useState(1);
+  
+  // Estado: decisiones del usuario en etapas interactivas
+  const [decisionUso, setDecisionUso] = useState('2 años'); // Etapa 3: duracion de uso
+  const [decisionFin, setDecisionFin] = useState('reciclar'); // Etapa 5: fin de vida
+  
+  // Estado: impacto ambiental calculado (CO₂, agua, residuos + puntuacion)
   const [impact, setImpact] = useState({ CO2: 0, agua: 0, residuos: 0, score: 0 });
 
-  // Datos predefinidos
+  // Datos predefinidos para cada tipo de dispositivo (base para calculos)
   const deviceData = {
     telefono: {
       name: "Samsung Galaxy A14",
@@ -34,31 +41,34 @@ export default function DemoSimulation() {
     }
   };
 
+  // Selecciona datos segun parametro de URL 
   const device = deviceData[type] || deviceData.telefono;
 
-  // Calcular impacto en tiempo real
+  // Calcula impacto ambiental en tiempo real segun decisiones del usuario
   useEffect(() => {
-    let score = 70; // Base
+    let score = 70; 
     
-    // Ajustar por uso
+    // Ajusta puntuacion segun duracion de uso
     if (decisionUso === "1 año") score -= 20;
     else if (decisionUso === "3+ años") score += 10;
 
-    // Ajustar por fin de vida
+    // Ajusta puntuacion segun decision de fin de vida
     if (decisionFin === "reciclar") score += 15;
     else if (decisionFin === "desechar") score -= 30;
 
+    // Limita puntuacion entre 20 y 100
     const finalScore = Math.max(20, Math.min(100, score));
     
+    // Calcula impacto proporcional al score (menor score = mayor impacto)
     setImpact({
       CO2: Math.round(device.baseCO2 * (120 - finalScore) / 70),
       agua: Math.round(device.baseAgua * (120 - finalScore) / 70),
       residuos: Math.round(device.baseResiduos * (120 - finalScore) / 70),
       score: finalScore
     });
-  }, [decisionUso, decisionFin, type]);
+  }, [decisionUso, decisionFin, type]); // Recalcula al cambiar decisiones o tipo
 
-  // Etapas del ciclo de vida
+  // Definicion de etapas del ciclo de vida
   const stages = [
     { id: 1, title: "1. Extracción", content: device.extraction },
     { id: 2, title: "2. Fabricación", content: device.manufacturing },
@@ -67,8 +77,10 @@ export default function DemoSimulation() {
     { id: 5, title: "5. Fin de vida", content: "¿Qué harás cuando ya no lo uses?" }
   ];
 
+  // Etapa actual seleccionada
   const current = stages[currentStage - 1];
 
+  // Navegacion entre etapas
   const handlePrev = () => {
     if (currentStage > 1) setCurrentStage(currentStage - 1);
   };
@@ -77,12 +89,14 @@ export default function DemoSimulation() {
     if (currentStage < 5) {
       setCurrentStage(currentStage + 1);
     } else {
-      // Mostrar resultados finales
-      alert("✅ ¡Simulación completada!\n\nPuedes explorar todos los detalles sin necesidad de registrarte.\n\n¿Quieres subir tu propio dispositivo? ¡Regístrate!");
+      // Al completar simulacion, muestra mensaje y redirige
+      alert("¡Simulación completada!\n\nPuedes explorar todos los detalles sin necesidad de registrarte.\n\n¿Quieres subir tu propio dispositivo? ¡Regístrate!");
     }
   };
 
+  // Renderiza contenido especifico segun etapa actual
   const renderStageContent = () => {
+    // Etapa 3: Selector de duracion de uso
     if (currentStage === 3) {
       return (
         <div className="space-y-3 mt-4">
@@ -103,6 +117,7 @@ export default function DemoSimulation() {
       );
     }
     
+    // Etapa 5: Selector de fin de vida
     if (currentStage === 5) {
       return (
         <div className="space-y-3 mt-4">
@@ -127,33 +142,34 @@ export default function DemoSimulation() {
       );
     }
     
+    // Etapas 1, 2 y 4: texto informativo estatico
     return <p className="mt-4 text-white/70">{current.content}</p>;
   };
 
+  // Genera recomendaciones personalizadas segun decision de fin de vida
   const getRecommendations = () => {
     if (decisionFin === 'desechar') {
       return [
-        "💡 Considera donar tu dispositivo. ¡Puede seguir siendo útil!",
-        "♻️ Busca puntos de reciclaje autorizados en tu ciudad.",
-        "🔋 Retira la batería antes de desechar. Es un residuo peligroso."
+        { icon: <FaLightbulb className="text-yellow-300" />, text: "Considera donar tu dispositivo. ¡Puede seguir siendo útil!" },
+        { icon: <FaRecycle className="text-cyan-300" />, text: "Busca puntos de reciclaje autorizados en tu ciudad." },
+        { icon: <FaBatteryFull className="text-amber-300" />, text: "Retira la batería antes de desechar. Es un residuo peligroso." }
       ];
     } else if (decisionFin === 'reciclar') {
       return [
-        "✅ ¡Excelente decisión! El reciclaje reduce el 80% de emisiones.",
-        "📱 Guarda tus datos en la nube antes de entregar el dispositivo.",
-        "🌍 Comparte esta acción en redes para inspirar a otros."
+        { icon: <FaCheckCircle className="text-emerald-300" />, text: "¡Excelente decisión! El reciclaje reduce el 80% de emisiones." },
+        { icon: <FaCloud className="text-blue-300" />, text: "Guarda tus datos en la nube antes de entregar el dispositivo." },
+        { icon: <FaShareAlt className="text-purple-300" />, text: "Comparte esta acción en redes para inspirar a otros." }
       ];
     }
     return [
-      "🤝 La donación extiende la vida útil del dispositivo.",
-      "📦 Asegúrate de borrar todos tus datos personales antes de donar.",
-      "❤️ Muchas organizaciones aceptan dispositivos usados para educación."
+      { icon: <FaHandshake className="text-emerald-300" />, text: "La donación extiende la vida útil del dispositivo." },
+      { icon: <FaLock className="text-red-300" />, text: "Asegúrate de borrar todos tus datos personales antes de donar." },
+      { icon: <FaHeart className="text-pink-300" />, text: "Muchas organizaciones aceptan dispositivos usados para educación." }
     ];
   };
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo premium */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -166,8 +182,16 @@ export default function DemoSimulation() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-8">
           <div>
             <p className="text-sm text-emerald-200/90 font-medium">Simulación demo</p>
-            <h1 className="mt-1 text-3xl md:text-4xl font-semibold">
-              {type === 'telefono' ? '📱 Simulación: Teléfono' : '💻 Simulación: Laptop'}
+            <h1 className="mt-1 text-3xl md:text-4xl font-semibold flex items-center gap-2">
+              {type === 'telefono' ? (
+                <>
+                  <FaMobileAlt className="text-blue-400" /> Simulación: Teléfono
+                </>
+              ) : (
+                <>
+                  <FaLaptop className="text-purple-400" /> Simulación: Laptop
+                </>
+              )}
             </h1>
             <p className="mt-2 text-white/65">
               Dispositivo: <strong>{device.name}</strong>
@@ -183,7 +207,6 @@ export default function DemoSimulation() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Panel de etapas */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-semibold">{current.title}</h2>
@@ -194,7 +217,6 @@ export default function DemoSimulation() {
 
             {renderStageContent()}
 
-            {/* Navegación */}
             <div className="mt-8 flex justify-between">
               <button
                 onClick={handlePrev}
@@ -212,10 +234,11 @@ export default function DemoSimulation() {
             </div>
           </div>
 
-          {/* Panel de impacto */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
-            <h2 className="text-2xl font-semibold mb-6">📊 Impacto ambiental</h2>
-            
+            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+              <FaChartBar className="text-emerald-300" /> Impacto ambiental
+            </h2>
+
             {currentStage >= 3 && (
               <>
                 <div className="mb-6">
@@ -248,12 +271,14 @@ export default function DemoSimulation() {
 
                 {currentStage === 5 && (
                   <div className="mt-6">
-                    <h3 className="font-medium mb-2">💡 Recomendaciones:</h3>
-                    <ul className="text-sm space-y-1">
+                    <h3 className="font-medium mb-2 flex items-center gap-2">
+                      <FaLightbulb className="text-yellow-300" /> Recomendaciones:
+                    </h3>
+                    <ul className="text-sm space-y-3">
                       {getRecommendations().map((rec, i) => (
-                        <li key={i} className="flex items-start gap-2">
-                          <span className="text-emerald-400">•</span>
-                          <span>{rec}</span>
+                        <li key={i} className="flex items-start gap-3 p-3 rounded-lg bg-white/[0.03] border border-white/10">
+                          <span className="mt-1 flex-shrink-0">{rec.icon}</span>
+                          <span className="text-white/85">{rec.text}</span>
                         </li>
                       ))}
                     </ul>
@@ -281,7 +306,7 @@ export default function DemoSimulation() {
             )}
           </div>
         </div>
-
+        
         <div className="mt-10 text-center text-white/45 text-sm">
           © 2026 SimuVidaTech — Educar para proteger nuestro planeta.
         </div>

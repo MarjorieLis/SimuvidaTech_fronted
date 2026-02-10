@@ -1,9 +1,9 @@
 // src/components/admin/AdminUsers.jsx
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { FaUsers, FaCheck, FaUser, FaShieldAlt } from "react-icons/fa";
 import api from "../../services/api";
 
-/* ✅ UI helpers */
 function Card({ className = "", children }) {
   return (
     <div
@@ -80,7 +80,6 @@ export default function AdminUsers() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo igual al sistema */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -89,7 +88,6 @@ export default function AdminUsers() {
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_center,transparent_35%,rgba(0,0,0,0.55)_100%)]" />
       </div>
 
-      {/* Header sticky */}
       <div className="relative sticky top-0 z-50 border-b border-white/10 bg-neutral-950/60 backdrop-blur-xl px-4 py-3">
         <div className="max-w-6xl mx-auto flex justify-between items-center gap-3">
           <div>
@@ -104,12 +102,15 @@ export default function AdminUsers() {
         </div>
       </div>
 
-      {/* Contenido */}
       <div className="relative max-w-6xl mx-auto px-4 py-10">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
           <div className="flex flex-wrap gap-2">
-            <Pill className="border-white/10 bg-white/[0.04] text-white/70">👥 {users.length} usuarios</Pill>
-            <Pill className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200">✅ Activos</Pill>
+            <Pill className="border-white/10 bg-white/[0.04] text-white/70">
+              <FaUsers className="text-base" /> {users.length} usuarios
+            </Pill>
+            <Pill className="border-emerald-400/20 bg-emerald-500/10 text-emerald-200">
+              <FaCheck className="text-base" /> Activos
+            </Pill>
           </div>
         </div>
 
@@ -120,7 +121,9 @@ export default function AdminUsers() {
             {users.map((user) => (
               <Card key={user.id} className="p-5 hover:bg-white/[0.06] transition">
                 <div className="flex items-start gap-3">
-                  <span className="text-2xl">👤</span>
+                  <span className="text-2xl">
+                    <FaUser className="text-emerald-400" />
+                  </span>
                   <div className="min-w-0">
                     <h3 className="font-semibold truncate">{user.name}</h3>
                     <p className="text-white/60 text-sm truncate">{user.email}</p>
@@ -136,11 +139,19 @@ export default function AdminUsers() {
                     className={[
                       "px-2 py-1 rounded-full text-xs border",
                       user.role === "admin"
-                        ? "bg-violet-500/10 text-violet-200 border-violet-400/20"
-                        : "bg-emerald-500/10 text-emerald-300 border-emerald-400/20",
+                        ? "bg-violet-500/10 text-violet-200 border-violet-400/20 flex items-center gap-1"
+                        : "bg-emerald-500/10 text-emerald-300 border-emerald-400/20 flex items-center gap-1",
                     ].join(" ")}
                   >
-                    {user.role === "admin" ? "🛡️ Admin" : "✅ Usuario"}
+                    {user.role === "admin" ? (
+                      <>
+                        <FaShieldAlt className="text-base" /> Admin
+                      </>
+                    ) : (
+                      <>
+                        <FaCheck className="text-base" /> Usuario
+                      </>
+                    )}
                   </span>
                 </div>
               </Card>

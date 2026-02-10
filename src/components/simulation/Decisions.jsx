@@ -1,19 +1,27 @@
-// src/components/simulation/Decisions.jsx
+// Simulación interactiva del ciclo de vida de dispositivos con calculo de impacto ambiental en tiempo real
+
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { FaGlobe, FaChartBar } from "react-icons/fa";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import api from '../../services/api';
 import { getAdjustedImpact } from '../../data/deviceData';
 
 export default function Decisions() {
-  const [stage, setStage] = useState(1); // 1 a 5
-  const [decisionUso, setDecisionUso] = useState('3+ años');
-  const [decisionFin, setDecisionFin] = useState('reciclar');
+  // Estado para controlar la etapa actual del ciclo de vida (1-5)
+  const [stage, setStage] = useState(1);
+  
+  // Estado para decisiones del usuario en etapas interactivas
+  const [decisionUso, setDecisionUso] = useState('3+ años'); // Etapa 3: duración de uso
+  const [decisionFin, setDecisionFin] = useState('reciclar'); // Etapa 5: fin de vida
+  
+  // Estado para almacenar datos del dispositivo
   const [device, setDevice] = useState(null);
+  
   const navigate = useNavigate();
   const { id } = useParams();
 
-  // Cargar dispositivo
+  // Carga los datos del dispositivo al montar el componente
   useEffect(() => {
     const loadDevice = async () => {
       try {
@@ -27,21 +35,21 @@ export default function Decisions() {
     loadDevice();
   }, [id, navigate]);
 
-  // Calcular impacto en tiempo real
+  // Calcula impacto ambiental en tiempo real basado en decisiones del usuario
   const impact = useMemo(() => {
     if (!device) return { CO2: 0, agua: 0, residuos: 0, score: 0 };
 
     const baseImpact = getAdjustedImpact(device.type, device.year);
     let { CO2, agua, residuos, score } = baseImpact;
 
-    // Ajustar por uso
+    // Ajusta impacto según duración de uso
     if (decisionUso === "1 año") {
       CO2 *= 1.2; agua *= 1.2; residuos *= 1.2; score = Math.max(20, score - 20);
     } else if (decisionUso === "2 años") {
       CO2 *= 1.1; agua *= 1.1; residuos *= 1.1; score = Math.max(20, score - 10);
     }
 
-    // Ajustar por fin de vida
+    // Ajusta impacto según decisión de fin de vida
     if (decisionFin === "desechar") {
       CO2 *= 1.3; agua *= 1.3; residuos *= 1.3; score = Math.max(20, score - 30);
     } else if (decisionFin === "reparar") {
@@ -58,22 +66,24 @@ export default function Decisions() {
     };
   }, [device, decisionUso, decisionFin]);
 
+  // Maneja navegación entre etapas y guarda decisiones
   const handleNext = async () => {
+    // Guarda decisión en etapas interactivas (3 y 5)
     if (stage === 3 || stage === 5) {
-      // Guardar decisión solo en etapas interactivas
       const decision = stage === 3 ? decisionUso : decisionFin;
       try {
         await api.post(`/devices/${id}/decisions`, {
-          stage: stage === 3 ? 1 : 2, // Mapeo: etapa 3 → stage 1, etapa 5 → stage 2
+          stage: stage === 3 ? 1 : 2, // Mapeo: etapa 3 → stage 1 (uso), etapa 5 → stage 2 (fin de vida)
           decision
         });
       } catch (err) {
         console.error('Error al guardar decisión:', err);
-        alert('❌ No se pudo guardar tu decisión.');
+        alert('No se pudo guardar tu decisión.');
         return;
       }
     }
 
+    // Avanza a siguiente etapa o muestra resultados
     if (stage < 5) {
       setStage(stage + 1);
     } else {
@@ -81,6 +91,7 @@ export default function Decisions() {
     }
   };
 
+  // Definición de etapas del ciclo de vida con descripciones dinámicas
   const stages = [
     {
       id: 1,
@@ -129,7 +140,6 @@ export default function Decisions() {
 
   return (
     <div className="min-h-screen bg-neutral-950 text-white relative overflow-hidden">
-      {/* Fondo premium */}
       <div className="absolute inset-0">
         <div className="absolute inset-0 bg-gradient-to-br from-emerald-900/20 via-transparent to-cyan-900/20" />
         <div className="absolute -top-32 -left-28 h-[26rem] w-[26rem] rounded-full bg-emerald-500/18 blur-3xl" />
@@ -143,7 +153,7 @@ export default function Decisions() {
           <div>
             <p className="text-sm text-emerald-200/90 font-medium">Simulación ambiental</p>
             <h1 className="mt-1 text-3xl md:text-4xl font-semibold flex items-center gap-3">
-              <span className="text-2xl">🌍</span> Ciclo de vida
+              <FaGlobe className="text-2xl text-emerald-300" /> Ciclo de vida
             </h1>
             <p className="mt-2 text-white/65 max-w-2xl">
               Tu {device?.type} <strong>{device?.model}</strong> en sus 5 etapas.
@@ -159,7 +169,6 @@ export default function Decisions() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Panel de etapas */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
             <div className="flex items-center justify-between mb-6">
               <h2 className="text-2xl font-semibold">{current.title}</h2>
@@ -170,7 +179,6 @@ export default function Decisions() {
 
             <p className="mb-6 text-white/60">{current.description}</p>
 
-            {/* Opciones solo en etapas interactivas */}
             {current.options && (
               <div className="space-y-3 mt-4">
                 {current.options.map((opt) => (
@@ -193,7 +201,6 @@ export default function Decisions() {
               </div>
             )}
 
-            {/* Navegación */}
             <div className="mt-8 flex justify-between">
               <button
                 onClick={() => setStage(prev => Math.max(1, prev - 1))}
@@ -215,9 +222,10 @@ export default function Decisions() {
             </div>
           </div>
 
-          {/* Gráfico de impacto */}
           <div className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl p-8">
-            <h2 className="text-2xl font-semibold mb-6">📊 Impacto actual</h2>
+            <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+              <FaChartBar className="text-emerald-300" /> Impacto actual
+            </h2>
             <div className="h-64 min-h-[16rem]">
               {impact.score > 0 ? (
                 <>
