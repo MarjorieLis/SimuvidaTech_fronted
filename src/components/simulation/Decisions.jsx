@@ -1,5 +1,3 @@
-// Simulación interactiva del ciclo de vida de dispositivos con calculo de impacto ambiental en tiempo real
-
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { FaGlobe, FaChartBar } from "react-icons/fa";
@@ -66,28 +64,61 @@ export default function Decisions() {
     };
   }, [device, decisionUso, decisionFin]);
 
-  // Maneja navegación entre etapas y guarda decisiones
+  // Maneja navegación entre etapas y guarda decisiones en la base de datos
   const handleNext = async () => {
-    // Guarda decisión en etapas interactivas (3 y 5)
+    // GUARDAR DECISIÓN EN ETAPAS INTERACTIVAS (3 y 5) CON MANEJO DE ERRORES MEJORADO
     if (stage === 3 || stage === 5) {
       const decision = stage === 3 ? decisionUso : decisionFin;
+      const stageNumber = stage === 3 ? 1 : 2; // 1 = uso, 2 = fin de vida
+      
       try {
+        // LLAMADA AL BACKEND PARA GUARDAR DECISIÓN EN BASE DE DATOS
         await api.post(`/devices/${id}/decisions`, {
-          stage: stage === 3 ? 1 : 2, // Mapeo: etapa 3 → stage 1 (uso), etapa 5 → stage 2 (fin de vida)
+          stage: stageNumber,
           decision
         });
+        
+        // LOG DE ÉXITO PARA DIAGNÓSTICO
+        console.log('Decisión guardada en BD:', { 
+          deviceId: id, 
+          stage: stageNumber, 
+          decision,
+          timestamp: new Date().toISOString()
+        });
       } catch (err) {
-        console.error('Error al guardar decisión:', err);
-        alert('No se pudo guardar tu decisión.');
+        // MANEJO DE ERRORES CON MENSAJE ESPECÍFICO DEL BACKEND
+        const errorMsg = err.response?.data?.error || 
+                         err.response?.data?.message || 
+                         err.message || 
+                         'Error desconocido al guardar decisión';
+        
+        console.error('Error al guardar decisión:', errorMsg);
+        
+        // ALERTA AL USUARIO CON DETALLES DEL ERROR
+        alert(`No se pudo guardar tu decisión: ${errorMsg}\n\nPor favor, intenta nuevamente.`);
+        
+        // DETIENE EL AVANCE SI FALLA EL GUARDADO (MEJOR UX)
         return;
       }
     }
 
-    // Avanza a siguiente etapa o muestra resultados
+    // AVANZAR A SIGUIENTE ETAPA O RESULTADOS CON DATOS COMPLETOS
     if (stage < 5) {
       setStage(stage + 1);
     } else {
-      navigate(`/results/${id}`);
+      // PASAR TODOS LOS DATOS NECESARIOS A RESULTS (incluyendo impacto calculado)
+      navigate(`/simulation/${id}/results`, {
+        state: { 
+          years: decisionUso,
+          decision: decisionFin,
+          impact: {
+            CO2: impact.CO2,
+            agua: impact.agua,
+            residuos: impact.residuos,
+            score: impact.score  //INCLUYE PUNTUACIÓN ECOLÓGICA
+          }
+        }
+      });
     }
   };
 
