@@ -2,11 +2,16 @@
 
 import { useNavigate } from "react-router-dom";
 import { FaGlobe, FaLeaf, FaTint, FaRecycle, FaMobileAlt, FaLaptop, FaEye } from "react-icons/fa";
+import ThreeScene from "../simulation/ThreeScene";
+import AccessiblePhone from "../simulation/AccessiblePhone";
+import AccessibilityInsight from "../simulation/AccessibilityInsight";
+import React from 'react';
 
 // Componente reutilizable para tarjetas de subida de dispositivos
-function UploadCard({ title, description, emoji, tag, onClick, image }) {
+function UploadCard({ title, description, emoji, tag, onClick, image, is3D }) {
   // Detecta si es telefono para ajustar el modo de visualizacion de la imagen
   const isPhone = title?.toLowerCase().includes("tel");
+  const [show3D, setShow3D] = React.useState(false);
 
   return (
     <button
@@ -23,34 +28,46 @@ function UploadCard({ title, description, emoji, tag, onClick, image }) {
       </div>
 
       {image ? (
-        <div className="relative mb-5 rounded-2xl overflow-hidden border border-white/10 bg-black/30">
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
+        <div
+          className="relative mb-5 rounded-2xl overflow-hidden border border-white/10 bg-black/30 h-40 md:h-44"
+          onMouseEnter={() => is3D && setShow3D(true)}
+          onMouseLeave={() => is3D && setShow3D(false)}
+        >
+          {show3D ? (
+            <ThreeScene>
+              <AccessiblePhone />
+            </ThreeScene>
+          ) : (
+            <>
+              <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/10 via-transparent to-cyan-500/10" />
+              <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent" />
 
-          <img
-            src={image}
-            alt={title}
-            loading="lazy"
-            decoding="async"
-            referrerPolicy="no-referrer"
-            className={[
-              "w-full h-40 md:h-44 transition duration-300",
-              isPhone
-                ? "object-contain p-3 md:p-4 group-hover:scale-[1.01]"
-                : "object-cover group-hover:scale-[1.03]",
-            ].join(" ")}
-            onError={(e) => {
-              e.currentTarget.src =
-                "https://images.unsplash.com/photo-1581092334651-ddf26d9a09d1?w=1400&h=700&fit=crop&auto=format&q=80    ";
-            }}
-          />
+              <img
+                src={image}
+                alt={title}
+                loading="lazy"
+                decoding="async"
+                referrerPolicy="no-referrer"
+                className={[
+                  "w-full h-full transition duration-300",
+                  isPhone
+                    ? "object-contain p-3 md:p-4 group-hover:scale-[1.01]"
+                    : "object-cover group-hover:scale-[1.03]",
+                ].join(" ")}
+                onError={(e) => {
+                  e.currentTarget.src =
+                    "https://images.unsplash.com/photo-1581092334651-ddf26d9a09d1?w=1400&h=700&fit=crop&auto=format&q=80    ";
+                }}
+              />
+            </>
+          )}
 
           <div
             className="absolute bottom-3 left-3 inline-flex items-center gap-2 px-3 py-1 rounded-full text-xs
-            bg-black/40 border border-white/10 text-white/80 backdrop-blur"
+            bg-black/40 border border-white/10 text-white/80 backdrop-blur z-10"
           >
             <span className="text-base">{emoji}</span>
-            Subida rápida
+            {is3D ? (show3D ? "Exploración 3D Activa" : "Hover para Explorar 3D") : "Subida rápida"}
           </div>
         </div>
       ) : null}
@@ -166,9 +183,10 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           <UploadCard
             title="Teléfonos"
-            description="Sube tu teléfono y descubre su impacto ambiental."
+            description="Explora tu teléfono en 3D con asistencia cognitiva."
             emoji={<FaMobileAlt className="text-blue-400" />}
-            tag="Más común"
+            tag="Exploración Accesible"
+            is3D={true}
             onClick={() => navigate("/upload/telefono")}
             image="https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=1400&h=800&fit=crop&auto=format&q=80    "
           />
@@ -182,6 +200,8 @@ export default function Dashboard() {
             image="https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=1400&h=800&fit=crop&auto=format&q=80    "
           />
         </div>
+
+        <AccessibilityInsight />
 
         <div className="mt-8 text-center">
           <button

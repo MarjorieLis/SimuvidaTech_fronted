@@ -1,11 +1,14 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { 
-  FaIndustry, FaMobileAlt, FaTruck, FaRecycle, 
-  FaTrash, FaHandshake, FaWrench, FaChartBar 
+import {
+  FaIndustry, FaMobileAlt, FaTruck, FaRecycle,
+  FaTrash, FaHandshake, FaWrench, FaChartBar
 } from 'react-icons/fa';
 import api from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
+import ThreeScene from './ThreeScene';
+import AccessiblePhone from './AccessiblePhone';
+import { useCognitiveAssistant } from '../../hooks/useCognitiveAssistant';
 
 export default function Simulation() {
   // Estado del dispositivo y parámetros de simulación
@@ -14,9 +17,24 @@ export default function Simulation() {
   const [yearsOfUse, setYearsOfUse] = useState(3);
   const [endOfLifeDecision, setEndOfLifeDecision] = useState('');
   const [impact, setImpact] = useState({ co2: 0, water: 0, raee: 0 });
-  
+
   const { id } = useParams();
   const navigate = useNavigate();
+  const { speak } = useCognitiveAssistant();
+
+  // Narrador de etapas (Accesibilidad Cognitiva)
+  useEffect(() => {
+    if (device) {
+      const stage = stages[currentStage];
+      const message = `Etapa de ${stage.name}. ${currentStage === 0 ? "Aquí se extraen los minerales necesarios para tu dispositivo." :
+          currentStage === 1 ? "En esta fase se ensamblan los componentes." :
+            currentStage === 2 ? "Selecciona el tiempo de uso para calcular el impacto." :
+              currentStage === 3 ? "Tu dispositivo viaja por todo el mundo hasta llegar a ti." :
+                "Elige qué pasará con el dispositivo al final."
+        }`;
+      speak(message);
+    }
+  }, [currentStage, device]);
 
   // Definición de etapas del ciclo de vida con iconos de FontAwesome
   const stages = [
@@ -53,12 +71,12 @@ export default function Simulation() {
     // Cálculo de CO2 y agua: inversamente proporcional a los años de uso
     const co2 = parseFloat((baseCo2 * (5 / years)).toFixed(2)) || 0;
     const water = parseFloat((baseWater * (5 / years)).toFixed(2)) || 0;
-    
+
     // Cálculo de RAEE: varía según la decisión de fin de vida
-    const raee = decision === 'reciclar' 
-      ? baseRaee * 0.2 
-      : decision === 'donar' 
-        ? baseRaee * 0.5 
+    const raee = decision === 'reciclar'
+      ? baseRaee * 0.2
+      : decision === 'donar'
+        ? baseRaee * 0.5
         : decision === 'reparar'
           ? baseRaee * 0.3
           : baseRaee; // 'tirar' mantiene el impacto completo
@@ -87,12 +105,12 @@ export default function Simulation() {
   // Finaliza la simulación y navega a resultados con los datos calculados
   const handleFinish = () => {
     // Convierte años numéricos a texto legible para la vista de resultados
-    const usoText = yearsOfUse === 1 ? "1 año" : 
-                   yearsOfUse === 2 ? "2 años" : 
-                   "3+ años";
+    const usoText = yearsOfUse === 1 ? "1 año" :
+      yearsOfUse === 2 ? "2 años" :
+        "3+ años";
 
     navigate(`/simulation/${id}/results`, {
-      state: { 
+      state: {
         years: usoText,
         decision: endOfLifeDecision,
         impact: {
@@ -122,7 +140,7 @@ export default function Simulation() {
             <motion.div
               key={stage.id}
               initial={{ scale: 0.8, opacity: 0.5 }}
-              animate={{ 
+              animate={{
                 scale: index === currentStage ? 1.2 : 1,
                 opacity: index <= currentStage ? 1 : 0.5,
                 color: index <= currentStage ? '#4ade80' : '#64748b'
@@ -216,13 +234,31 @@ export default function Simulation() {
             )}
 
             {currentStage !== 2 && currentStage !== 4 && (
-              <div className="text-white/70 py-8">
-                <p>Etapa de {stages[currentStage].name.toLowerCase()} del dispositivo</p>
-                <p className="mt-2 text-sm italic">
-                  {currentStage === 0 && "Extracción de minerales y materias primas"}
-                  {currentStage === 1 && "Proceso de fabricación y ensamblaje"}
-                  {currentStage === 3 && "Transporte global hasta el punto de venta"}
-                </p>
+              <div className="space-y-6">
+                {/* Visualización 3D para Extracción y Fabricación */}
+                {(currentStage === 0 || currentStage === 1) && (
+                  <div className="h-64 sm:h-80 w-full mb-6 relative">
+                    <ThreeScene>
+                      <AccessiblePhone />
+                    </ThreeScene>
+                    <div className="absolute top-2 left-2 bg-emerald-500/20 backdrop-blur-md px-3 py-1 rounded-full border border-emerald-400/30 text-[11px] font-bold text-emerald-300 animate-pulse">
+                      VISTA TÉCNICA 3D
+                    </div>
+                  </div>
+                )}
+
+                <div className="text-white/70 py-4">
+                  <p className="text-lg font-medium text-emerald-200 mb-2">
+                    {currentStage === 0 && "Extracción de minerales y materias primas"}
+                    {currentStage === 1 && "Proceso de fabricación y ensamblaje"}
+                    {currentStage === 3 && "Transporte global hasta el punto de venta"}
+                  </p>
+                  <p className="text-sm italic leading-relaxed max-w-md mx-auto">
+                    {currentStage === 0 && "Se requieren materiales como oro, litio y cobalto, cuya obtención tiene un alto costo ambiental y social."}
+                    {currentStage === 1 && "El ensamblaje consume grandes cantidades de energía eléctrica y agua para la limpieza de componentes."}
+                    {currentStage === 3 && "El transporte de mercancías contribuye significativamente a las emisiones globales de CO2 por el uso de combustibles fósiles."}
+                  </p>
+                </div>
               </div>
             )}
 
@@ -255,24 +291,22 @@ export default function Simulation() {
           <button
             onClick={handlePrev}
             disabled={currentStage === 0}
-            className={`px-6 py-2 rounded-lg font-medium ${
-              currentStage === 0
+            className={`px-6 py-2 rounded-lg font-medium ${currentStage === 0
                 ? 'bg-white/10 text-white/30 cursor-not-allowed'
                 : 'bg-white/20 text-white hover:bg-white/30'
-            }`}
+              }`}
           >
             ← Anterior
           </button>
-          
+
           {currentStage === stages.length - 1 ? (
             <button
               onClick={handleFinish}
               disabled={!endOfLifeDecision}
-              className={`px-6 py-2 rounded-lg font-medium ${
-                endOfLifeDecision
+              className={`px-6 py-2 rounded-lg font-medium ${endOfLifeDecision
                   ? 'bg-emerald-500 text-neutral-950 hover:bg-emerald-600'
                   : 'bg-white/10 text-white/50 cursor-not-allowed'
-              }`}
+                }`}
             >
               Ver resultados →
             </button>

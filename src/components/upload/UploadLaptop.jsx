@@ -1,7 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { FaLaptop, FaArrowLeft, FaSyncAlt, FaInfoCircle } from "react-icons/fa";
+import { FaLaptop, FaArrowLeft, FaSyncAlt, FaInfoCircle, FaRobot } from "react-icons/fa";
 import api from "../../services/api";
+import { useEffect, useMemo } from 'react';
+import ThreeScene from "../simulation/ThreeScene";
+import AccessibleLaptop from "../simulation/AccessibleLaptop";
+import { getAIModelConfig } from "../../services/AIModelSelector";
+import { useCognitiveAssistant } from "../../hooks/useCognitiveAssistant";
 
 function Field({ label, hint, children }) {
   return (
@@ -24,6 +29,31 @@ export default function UploadLaptop() {
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
   const navigate = useNavigate();
+  const { speak } = useCognitiveAssistant();
+
+  // Obtener configuracion de IA basada en el modelo
+  const aiConfig = useMemo(() => getAIModelConfig(model, 'laptop'), [model]);
+
+  // Narracion de deteccion IA y Autocompletado (Accesibilidad)
+  useEffect(() => {
+    if (model.length > 5) {
+      const timer = setTimeout(() => {
+        speak(aiConfig.description);
+
+        // Solo autocompletamos si el modelo existe
+        if (aiConfig.exists && aiConfig.materials) {
+          setMaterials(aiConfig.materials);
+          speak(`Sincronizando materiales para esta laptop.`);
+        } else if (!aiConfig.exists) {
+          speak("Modelo de laptop no reconocido. Asegúrate de que el nombre sea correcto.");
+        }
+      }, 800);
+      return () => clearTimeout(timer);
+    } else if (model.length === 0) {
+      // Limpiar materiales si el modelo se borra completamente
+      setMaterials("");
+    }
+  }, [model, aiConfig.exists, aiConfig.description, aiConfig.materials, speak]);
 
   // Manejador del envío del formulario
   const handleSubmit = async (e) => {
@@ -47,7 +77,7 @@ export default function UploadLaptop() {
 
       // Guarda ID temporalmente para la simulación
       localStorage.setItem("currentDeviceId", response.data.id);
-      
+
       // Navega a la simulación con el ID del dispositivo recién creado
       navigate(`/simulation/${response.data.id}`);
     } catch (err) {
@@ -55,8 +85,8 @@ export default function UploadLaptop() {
       setLoading(false);
       // Muestra mensaje de error específico del servidor o genérico
       setErrorMsg(
-        err.response?.data?.error || 
-        err.message || 
+        err.response?.data?.error ||
+        err.message ||
         "No se pudo registrar la laptop. Intenta nuevamente."
       );
     }
@@ -94,103 +124,146 @@ export default function UploadLaptop() {
           </button>
         </div>
 
-        <div
-          className="rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_0_0_1px_rgba(16,185,129,0.06),0_30px_80px_-50px_rgba(0,0,0,0.9)] p-8 md:p-10"
-        >
-          <div className="flex items-start justify-between gap-4">
-            <div>
-              <h2 className="text-xl md:text-2xl font-semibold">Información del dispositivo</h2>
-              <p className="mt-1 text-sm text-white/60">
-                Completa los campos para registrar tu laptop.
-              </p>
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Columna Izquierda: Formulario */}
+          <div className="lg:col-span-7 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl shadow-[0_0_0_1px_rgba(16,185,129,0.06),0_30px_80px_-50px_rgba(0,0,0,0.9)] p-8 md:p-10">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <h2 className="text-xl md:text-2xl font-semibold">Información del dispositivo</h2>
+                <p className="mt-1 text-sm text-white/60">
+                  Completa los campos para registrar tu laptop.
+                </p>
+              </div>
+
+              <span className="px-3 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-200 border border-emerald-400/20">
+                Paso 1 de 3
+              </span>
             </div>
 
-            <span className="px-3 py-1 rounded-full text-xs bg-emerald-500/10 text-emerald-200 border border-emerald-400/20">
-              Paso 1 de 3
-            </span>
+            {errorMsg ? (
+              <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-start gap-2">
+                <FaInfoCircle className="mt-0.5 flex-shrink-0" />
+                {errorMsg}
+              </div>
+            ) : null}
+
+            {!aiConfig.exists && model.length > 5 && (
+              <div className="mb-5 rounded-xl border border-amber-500/25 bg-amber-500/10 px-4 py-3 text-xs text-amber-200 flex items-center gap-2 animate-pulse">
+                <FaInfoCircle className="text-amber-400" />
+                <span>Advertencia: La IA no reconoce la <b>{model}</b> como un modelo verificado.</span>
+              </div>
+            )}
+
+            <form onSubmit={handleSubmit} className="mt-8 space-y-5">
+              <Field label="Modelo" hint="Ej: MacBook Air M2">
+                <input
+                  type="text"
+                  placeholder="MacBook Air M2"
+                  className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
+                  value={model}
+                  onChange={(e) => setModel(e.target.value)}
+                  required
+                  aria-required="true"
+                />
+              </Field>
+
+              <Field label="Año de fabricación" hint="Ej: 2022">
+                <input
+                  type="number"
+                  placeholder="2022"
+                  className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
+                  value={year}
+                  onChange={(e) => setYear(e.target.value)}
+                  min="1990"
+                  max="2100"
+                  required
+                  aria-required="true"
+                />
+              </Field>
+
+              <Field
+                label="Materiales visibles"
+                hint="Separados por comas. Ej: aluminio, plástico, vidrio"
+              >
+                <input
+                  type="text"
+                  placeholder="aluminio, plástico, vidrio"
+                  className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
+                  value={materials}
+                  onChange={(e) => setMaterials(e.target.value)}
+                  required
+                  aria-required="true"
+                />
+              </Field>
+
+              <div className="pt-2 flex flex-col sm:flex-row gap-3">
+                <button
+                  type="submit"
+                  disabled={loading}
+                  className="w-full sm:w-auto flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  aria-busy={loading}
+                >
+                  {loading ? (
+                    <>
+                      <FaSyncAlt className="animate-spin" /> Guardando...
+                    </>
+                  ) : (
+                    <>
+                      Guardar y continuar <span className="hidden sm:inline">→</span>
+                    </>
+                  )}
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => {
+                    setModel("");
+                    setYear("");
+                    setMaterials("");
+                  }}
+                  className="w-full sm:w-auto rounded-xl py-3 px-6 bg-white/5 border border-white/10 text-white/75 hover:bg-white/10 hover:text-white transition flex items-center justify-center gap-2"
+                  aria-label="Limpiar formulario"
+                >
+                  <FaSyncAlt className="text-base" /> Limpiar
+                </button>
+              </div>
+            </form>
           </div>
 
-          {errorMsg ? (
-            <div className="mt-5 rounded-xl border border-red-500/25 bg-red-500/10 px-4 py-3 text-sm text-red-200 flex items-start gap-2">
-              <FaInfoCircle className="mt-0.5 flex-shrink-0" />
-              {errorMsg}
+          {/* Columna Derecha: Previsualizacion IA 3D */}
+          <div className="lg:col-span-5 flex flex-col gap-4">
+            <div className="p-6 rounded-3xl border border-white/10 bg-white/5 backdrop-blur-xl flex flex-col items-center justify-center flex-1 min-h-[400px]">
+              <div className="flex items-center gap-2 mb-4 w-full px-2">
+                <div className="p-2 rounded-lg bg-cyan-500/20 text-cyan-400">
+                  <FaRobot />
+                </div>
+                <h3 className="font-bold text-sm uppercase tracking-wider text-cyan-300">Generador IA de Laptop</h3>
+                <div className="ml-auto flex gap-1">
+                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse delay-75" />
+                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-500 animate-pulse delay-150" />
+                </div>
+              </div>
+
+              <div className="w-full h-full flex-1">
+                <ThreeScene>
+                  <AccessibleLaptop
+                    color={aiConfig.color}
+                    modelName={model || 'Laptop'}
+                    isPro={aiConfig.isPro}
+                    isUltra={aiConfig.isUltra}
+                  />
+                </ThreeScene>
+              </div>
+
+              <div className="mt-4 w-full bg-black/40 p-4 rounded-2xl border border-white/5">
+                <p className="text-xs text-white/50 mb-1 uppercase font-bold tracking-tighter">Respuesta IA:</p>
+                <p className="text-sm text-cyan-100 italic leading-relaxed">
+                  {model.length > 2 ? aiConfig.description : "Identificando arquitectura del equipo..."}
+                </p>
+              </div>
             </div>
-          ) : null}
-
-          <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-            <Field label="Modelo" hint="Ej: MacBook Air M2">
-              <input
-                type="text"
-                placeholder="MacBook Air M2"
-                className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
-                value={model}
-                onChange={(e) => setModel(e.target.value)}
-                required
-                aria-required="true"
-              />
-            </Field>
-
-            <Field label="Año de fabricación" hint="Ej: 2022">
-              <input
-                type="number"
-                placeholder="2022"
-                className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
-                value={year}
-                onChange={(e) => setYear(e.target.value)}
-                min="1990"
-                max="2100"
-                required
-                aria-required="true"
-              />
-            </Field>
-
-            <Field
-              label="Materiales visibles"
-              hint="Separados por comas. Ej: aluminio, plástico, vidrio"
-            >
-              <input
-                type="text"
-                placeholder="aluminio, plástico, vidrio"
-                className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
-                value={materials}
-                onChange={(e) => setMaterials(e.target.value)}
-                required
-                aria-required="true"
-              />
-            </Field>
-
-            <div className="pt-2 flex flex-col sm:flex-row gap-3">
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full sm:w-auto flex-1 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-neutral-950 font-semibold py-3 px-6 hover:from-emerald-400 hover:to-emerald-500 shadow-lg shadow-emerald-500/25 transition disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-                aria-busy={loading}
-              >
-                {loading ? (
-                  <>
-                    <FaSyncAlt className="animate-spin" /> Guardando...
-                  </>
-                ) : (
-                  <>
-                    Guardar y continuar <span className="hidden sm:inline">→</span>
-                  </>
-                )}
-              </button>
-
-              <button
-                type="button"
-                onClick={() => {
-                  setModel("");
-                  setYear("");
-                  setMaterials("");
-                }}
-                className="w-full sm:w-auto rounded-xl py-3 px-6 bg-white/5 border border-white/10 text-white/75 hover:bg-white/10 hover:text-white transition flex items-center justify-center gap-2"
-                aria-label="Limpiar formulario"
-              >
-                <FaSyncAlt className="text-base" /> Limpiar
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
 
         <div className="mt-10 text-center text-white/45 text-sm">
