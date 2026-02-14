@@ -43,6 +43,7 @@ Para la construcción de esta solución se utilizó asistencia de IA (Antigravit
     - **Falsos Negativos:** Inicialmente, el sistema bloqueaba series reales como la "Samsung A90". Se ajustaron manualmente los regex para permitir estas series históricas.
     - **El "Problema del Cero":** El sistema validaba "Dell XPS 0". Se implementó un filtro manual de coherencia numérica para asegurar que series de gama alta no aceptaran valores nulos o absurdos.
     - **Debouncing de Audio:** La voz de la IA se solapaba al escribir rápido. Se añadió un `setTimeout` de 800ms para asegurar que el asistente solo hable cuando el usuario ha terminado de teclear.
+    - **Catálogo Expandido y UI Personalizada:** Se generó una base de datos con más de 100 modelos reales (Apple, Samsung, Xiaomi, etc.) y se reemplazó el `datalist` nativo por un componente de dropdown personalizado con scroll (`max-h-60 overflow-y-auto`) para garantizar la usabilidad en listas largas.
 
 ## 5. Conclusiones Técnicas
 La principal limitación encontrada fue la **Potencia de Cómputo en Navegador**. Renderizar modelos PBR con múltiples luces y hotspots interactivos puede aumentar la temperatura del hardware en dispositivos móviles de gama baja. 

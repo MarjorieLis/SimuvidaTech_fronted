@@ -5,7 +5,7 @@ import api from "../../services/api";
 import { useEffect, useMemo } from 'react';
 import ThreeScene from "../simulation/ThreeScene";
 import AccessiblePhone from "../simulation/AccessiblePhone";
-import { getAIModelConfig } from "../../services/AIModelSelector";
+import { getAIModelConfig, getModelsByBrand } from "../../services/AIModelSelector";
 import { useCognitiveAssistant } from "../../hooks/useCognitiveAssistant";
 
 function Field({ label, hint, children }) {
@@ -28,11 +28,15 @@ export default function UploadPhone() {
   const [materials, setMaterials] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState("");
+  const [showSuggestions, setShowSuggestions] = useState(false);
   const navigate = useNavigate();
   const { speak } = useCognitiveAssistant();
 
   // Obtener configuracion de IA basada en el modelo
   const aiConfig = useMemo(() => getAIModelConfig(model, 'phone'), [model]);
+
+  // Obtener sugerencias de modelos basadas en lo que el usuario escribe
+  const suggestedModels = useMemo(() => getModelsByBrand(model, 'phone'), [model]);
 
   // Narracion de deteccion IA y Autocompletado (Accesibilidad)
   useEffect(() => {
@@ -167,10 +171,34 @@ export default function UploadPhone() {
                     text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
                   placeholder="Samsung Galaxy A14"
                   value={model}
-                  onChange={(e) => setModel(e.target.value)}
+                  onChange={(e) => {
+                    setModel(e.target.value);
+                    setShowSuggestions(true);
+                  }}
+                  onFocus={() => setShowSuggestions(true)}
+                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                   required
                   aria-required="true"
+                  autoComplete="off"
                 />
+
+                {showSuggestions && suggestedModels.length > 0 && (
+                  <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-neutral-900 shadow-2xl">
+                    {suggestedModels.map((m, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className="w-full px-4 py-2 text-left text-xs text-white hover:bg-emerald-500/20 transition-colors border-b border-white/5 last:border-0"
+                        onClick={() => {
+                          setModel(m);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        {m}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </Field>
 
               <Field label="Año de fabricación" hint="Ej: 2023">

@@ -5,7 +5,7 @@ Este documento detalla los archivos del proyecto SimuvidaTech que han sido modif
 ## 🆕 Archivos Creados
 Estos archivos fueron añadidos para estructurar la nueva lógica de IA y documentación final:
 
-1.  **[AIModelSelector.js](file:///c:/Users/Asus/Documents/Sexto/SimuvidaTech_fronted/src/services/AIModelSelector.js)**: Motor central de IA que valida la existencia de modelos (teléfonos y laptops) y mapea sus propiedades físicas (materiales, cámaras, procesadores).
+1.  **[AIModelSelector.js](file:///c:/Users/Asus/Documents/Sexto/SimuvidaTech_fronted/src/services/AIModelSelector.js)**: Motor central de IA con catálogo ultra-expandido (+100 modelos) y lógica de sugerencias proactiva.
 2.  **[README_PROYECTO_FINAL.md](file:///c:/Users/Asus/Documents/Sexto/SimuvidaTech_fronted/README_PROYECTO_FINAL.md)**: Reporte técnico exhaustivo requerido para la entrega final, incluyendo justificación pedagógica y arquitectura.
 
 ## 🛠️ Archivos Modificados
