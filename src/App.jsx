@@ -27,6 +27,7 @@ import AdminPanel from './components/admin/AdminPanel';
 import AdminDashboard from './components/admin/AdminDashboard';
 import AdminUsers from './components/admin/AdminUsers';
 import DeviceDetail from './components/admin/DeviceDetail';
+import AdminVerifyDelivery from './components/admin/AdminVerifyDelivery';
 
 export default function App() {
   const location = useLocation();
@@ -58,57 +59,57 @@ export default function App() {
           </Link>
 
           <div className="flex items-center gap-2">
-  {!authenticated ? (
-    <>
-      {/* 🔑 Iniciar sesión (secundario) */}
-      <Link
-        to="/login"
-        className="px-4 py-1.5 rounded-full text-sm font-medium 
+            {!authenticated ? (
+              <>
+                {/* 🔑 Iniciar sesión (secundario) */}
+                <Link
+                  to="/login"
+                  className="px-4 py-1.5 rounded-full text-sm font-medium 
                    border border-white/15 text-white/70
                    hover:bg-white/[0.06] hover:text-white transition"
-      >
-        Iniciar sesión
-      </Link>
+                >
+                  Iniciar sesión
+                </Link>
 
-      {/* 🚀 Registrarse (CTA principal) */}
-      <Link
-        to="/register"
-        className={[
-          "px-4 py-1.5 rounded-full text-sm font-semibold transition border",
-          isRegister
-            ? "bg-emerald-500/25 text-emerald-100 border-emerald-400/35"
-            : "bg-emerald-500 text-neutral-950 border-emerald-400/40 hover:opacity-90 shadow-md",
-        ].join(" ")}
-      >
-        Registrarse
-      </Link>
-    </>
-  ) : (
-    <>
-      <span className="hidden sm:block text-sm text-white/70">
-        Hola{user?.name ? `, ${user.name}` : ""}
-      </span>
+                {/* 🚀 Registrarse (CTA principal) */}
+                <Link
+                  to="/register"
+                  className={[
+                    "px-4 py-1.5 rounded-full text-sm font-semibold transition border",
+                    isRegister
+                      ? "bg-emerald-500/25 text-emerald-100 border-emerald-400/35"
+                      : "bg-emerald-500 text-neutral-950 border-emerald-400/40 hover:opacity-90 shadow-md",
+                  ].join(" ")}
+                >
+                  Registrarse
+                </Link>
+              </>
+            ) : (
+              <>
+                <span className="hidden sm:block text-sm text-white/70">
+                  Hola{user?.name ? `, ${user.name}` : ""}
+                </span>
 
-      <Link
-        to="/dashboard"
-        className="px-4 py-1.5 rounded-full text-sm transition 
+                <Link
+                  to="/dashboard"
+                  className="px-4 py-1.5 rounded-full text-sm transition 
                    bg-white/5 border border-white/10 
                    text-white/80 hover:text-white hover:bg-white/10"
-      >
-        Dashboard
-      </Link>
+                >
+                  Dashboard
+                </Link>
 
-      <button
-        onClick={handleLogout}
-        className="px-4 py-1.5 rounded-full text-sm transition 
+                <button
+                  onClick={handleLogout}
+                  className="px-4 py-1.5 rounded-full text-sm transition 
                    bg-red-500/10 border border-red-400/30 
                    text-red-300 hover:bg-red-500/20 hover:text-red-200"
-      >
-        Cerrar sesión
-      </button>
-    </>
-  )}
-</div>
+                >
+                  Cerrar sesión
+                </button>
+              </>
+            )}
+          </div>
 
         </div>
       </nav>
@@ -152,43 +153,47 @@ export default function App() {
             />
 
             {/* Rutas de dispositivo */}
-            <Route 
-              path="/upload/telefono" 
-              element={authenticated ? <UploadPhone /> : <Navigate to="/login" replace />} 
+            <Route
+              path="/upload/telefono"
+              element={authenticated ? <UploadPhone /> : <Navigate to="/login" replace />}
             />
-            <Route 
-              path="/upload/laptop" 
-              element={authenticated ? <UploadLaptop /> : <Navigate to="/login" replace />} 
+            <Route
+              path="/upload/laptop"
+              element={authenticated ? <UploadLaptop /> : <Navigate to="/login" replace />}
             />
-            <Route 
-              path="/simulation/:id" 
-              element={authenticated ? <Simulation /> : <Navigate to="/login" replace />} 
+            <Route
+              path="/simulation/:id"
+              element={authenticated ? <Simulation /> : <Navigate to="/login" replace />}
             />
-            <Route 
-              path="/simulation/:id/decisions" 
-              element={authenticated ? <Decisions /> : <Navigate to="/login" replace />} 
+            <Route
+              path="/simulation/:id/decisions"
+              element={authenticated ? <Decisions /> : <Navigate to="/login" replace />}
             />
             <Route path="/demo/:type" element={<DemoSimulation />} />
             <Route path="/results/:id" element={<Results />} />
             <Route path="/my-devices" element={<MyDevices />} />
 
             {/* Rutas de administrador */}
-            <Route 
-              path="/admin" 
-              element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/dashboard" replace />} 
+            <Route
+              path="/admin"
+              element={user?.role === 'admin' ? <AdminPanel /> : <Navigate to="/dashboard" replace />}
             />
-            <Route 
-              path="/admin/users" 
-              element={user?.role === 'admin' ? <AdminUsers /> : <Navigate to="/dashboard" replace />} 
+            <Route
+              path="/admin/users"
+              element={user?.role === 'admin' ? <AdminUsers /> : <Navigate to="/dashboard" replace />}
             />
-            <Route 
-              path="/admin/device/:id" 
-              element={user?.role === 'admin' ? <DeviceDetail /> : <Navigate to="/dashboard" replace />} 
+            <Route
+              path="/admin/device/:id"
+              element={user?.role === 'admin' ? <DeviceDetail /> : <Navigate to="/dashboard" replace />}
+            />
+            <Route
+              path="/admin/verify/:token"
+              element={user?.role === 'admin' ? <AdminVerifyDelivery /> : <Navigate to="/login" replace />}
             />
             <Route path="/simulation/:id/results" element={<Results />} />
 
-             <Route path="/about" element={<About />} />
-     
+            <Route path="/about" element={<About />} />
+
           </Routes>
         </div>
       </main>

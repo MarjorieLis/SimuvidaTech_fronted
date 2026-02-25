@@ -8,7 +8,42 @@ import api from '../../services/api';
 import { motion, AnimatePresence } from 'framer-motion';
 import ThreeScene from './ThreeScene';
 import AccessiblePhone from './AccessiblePhone';
+import AccessibleLaptop from './AccessibleLaptop';
 import { useCognitiveAssistant } from '../../hooks/useCognitiveAssistant';
+import { getAIModelConfig } from '../../services/AIModelSelector';
+
+// Mapa de colores por marca de dispositivo
+const BRAND_COLORS = {
+  apple: '#b0b8c1',
+  samsung: '#1a2230',
+  xiaomi: '#ff6900',
+  huawei: '#c00d0d',
+  lg: '#a8003e',
+  dell: '#007db8',
+  hp: '#0096d6',
+  lenovo: '#e2231a',
+  asus: '#00539b',
+  acer: '#83b81a',
+  default_phone: '#1a1a1a',
+  default_laptop: '#8a9ba8',
+};
+
+const getBrandColor = (modelName, type) => {
+  if (!modelName) return type === 'telefono' ? BRAND_COLORS.default_phone : BRAND_COLORS.default_laptop;
+  const lower = modelName.toLowerCase();
+  for (const brand of Object.keys(BRAND_COLORS)) {
+    if (lower.includes(brand)) return BRAND_COLORS[brand];
+  }
+  return type === 'telefono' ? BRAND_COLORS.default_phone : BRAND_COLORS.default_laptop;
+};
+
+const getCameraCount = (model) => {
+  if (!model) return 2;
+  const lower = model.toLowerCase();
+  if (lower.includes('ultra') || lower.includes('pro max') || lower.includes('pro+')) return 4;
+  if (lower.includes('pro') || lower.includes('plus') || lower.includes('+')) return 3;
+  return 2;
+};
 
 export default function Simulation() {
   // Estado del dispositivo y parámetros de simulación
@@ -27,10 +62,10 @@ export default function Simulation() {
     if (device) {
       const stage = stages[currentStage];
       const message = `Etapa de ${stage.name}. ${currentStage === 0 ? "Aquí se extraen los minerales necesarios para tu dispositivo." :
-          currentStage === 1 ? "En esta fase se ensamblan los componentes." :
-            currentStage === 2 ? "Selecciona el tiempo de uso para calcular el impacto." :
-              currentStage === 3 ? "Tu dispositivo viaja por todo el mundo hasta llegar a ti." :
-                "Elige qué pasará con el dispositivo al final."
+        currentStage === 1 ? "En esta fase se ensamblan los componentes." :
+          currentStage === 2 ? "Selecciona el tiempo de uso para calcular el impacto." :
+            currentStage === 3 ? "Tu dispositivo viaja por todo el mundo hasta llegar a ti." :
+              "Elige qué pasará con el dispositivo al final."
         }`;
       speak(message);
     }
@@ -103,11 +138,33 @@ export default function Simulation() {
   };
 
   // Finaliza la simulación y navega a resultados con los datos calculados
-  const handleFinish = () => {
+  const handleFinish = async () => {
     // Convierte años numéricos a texto legible para la vista de resultados
     const usoText = yearsOfUse === 1 ? "1 año" :
       yearsOfUse === 2 ? "2 años" :
-        "3+ años";
+        yearsOfUse === 3 ? "3 años" :
+          yearsOfUse === 4 ? "4 años" :
+            "5 años";
+
+    // ✅ Guardar decisiones en la base de datos
+    try {
+      // Stage 1: Decisión de años de uso
+      await api.post(`/decisions/device/${id}`, {
+        stage: 1,
+        decision: usoText
+      });
+
+      // Stage 2: Decisión de fin de vida (reciclar, donar, reparar, tirar)
+      await api.post(`/decisions/device/${id}`, {
+        stage: 2,
+        decision: endOfLifeDecision
+      });
+
+      console.log('✅ Decisiones guardadas en BD');
+    } catch (err) {
+      console.error('Error al guardar decisiones:', err);
+      // Continuar aunque falle el guardado
+    }
 
     navigate(`/simulation/${id}/results`, {
       state: {
@@ -239,10 +296,36 @@ export default function Simulation() {
                 {(currentStage === 0 || currentStage === 1) && (
                   <div className="h-64 sm:h-80 w-full mb-6 relative">
                     <ThreeScene>
-                      <AccessiblePhone />
+                      {(() => {
+                        const type3d = device?.type === 'laptop' ? 'laptop' : 'phone';
+                        const cfg = getAIModelConfig(device?.model || '', type3d);
+                        if (type3d === 'laptop') {
+                          return (
+                            <AccessibleLaptop
+                              modelName={device?.model || ''}
+                              color={cfg.color}
+                              isPro={cfg.isPro}
+                              isUltra={cfg.isUltra}
+                              screenGlow={cfg.screenGlow}
+                              form={cfg.form}
+                            />
+                          );
+                        }
+                        return (
+                          <AccessiblePhone
+                            modelName={device?.model || ''}
+                            color={cfg.color}
+                            cameraCount={cfg.cameraCount}
+                            isUltra={cfg.isUltra}
+                            roughness={cfg.roughness}
+                            metalness={cfg.metalness}
+                            form={cfg.form}
+                          />
+                        );
+                      })()}
                     </ThreeScene>
                     <div className="absolute top-2 left-2 bg-emerald-500/20 backdrop-blur-md px-3 py-1 rounded-full border border-emerald-400/30 text-[11px] font-bold text-emerald-300 animate-pulse">
-                      VISTA TÉCNICA 3D
+                      MODELO 3D · {device?.model || 'Dispositivo'}
                     </div>
                   </div>
                 )}
@@ -292,8 +375,8 @@ export default function Simulation() {
             onClick={handlePrev}
             disabled={currentStage === 0}
             className={`px-6 py-2 rounded-lg font-medium ${currentStage === 0
-                ? 'bg-white/10 text-white/30 cursor-not-allowed'
-                : 'bg-white/20 text-white hover:bg-white/30'
+              ? 'bg-white/10 text-white/30 cursor-not-allowed'
+              : 'bg-white/20 text-white hover:bg-white/30'
               }`}
           >
             ← Anterior
@@ -304,8 +387,8 @@ export default function Simulation() {
               onClick={handleFinish}
               disabled={!endOfLifeDecision}
               className={`px-6 py-2 rounded-lg font-medium ${endOfLifeDecision
-                  ? 'bg-emerald-500 text-neutral-950 hover:bg-emerald-600'
-                  : 'bg-white/10 text-white/50 cursor-not-allowed'
+                ? 'bg-emerald-500 text-neutral-950 hover:bg-emerald-600'
+                : 'bg-white/10 text-white/50 cursor-not-allowed'
                 }`}
             >
               Ver resultados →

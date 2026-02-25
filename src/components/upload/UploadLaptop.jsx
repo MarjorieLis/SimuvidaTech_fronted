@@ -5,7 +5,7 @@ import api from "../../services/api";
 import { useEffect, useMemo } from 'react';
 import ThreeScene from "../simulation/ThreeScene";
 import AccessibleLaptop from "../simulation/AccessibleLaptop";
-import { getAIModelConfig, getModelsByBrand } from "../../services/AIModelSelector";
+import { getAIModelConfig, getModelsByBrand, getModelYear } from "../../services/AIModelSelector";
 import { useCognitiveAssistant } from "../../hooks/useCognitiveAssistant";
 
 function Field({ label, hint, children }) {
@@ -37,6 +37,14 @@ export default function UploadLaptop() {
 
   // Obtener sugerencias de modelos basadas en lo que el usuario escribe
   const suggestedModels = useMemo(() => getModelsByBrand(model, 'laptop'), [model]);
+
+  // Auto-rellenar año y materiales al detectar modelo conocido
+  useEffect(() => {
+    if (model.length > 4) {
+      const autoYear = getModelYear(model);
+      if (autoYear && !year) setYear(String(autoYear));
+    }
+  }, [model]);
 
   // Narracion de deteccion IA y Autocompletado (Accesibilidad)
   useEffect(() => {
@@ -159,47 +167,53 @@ export default function UploadLaptop() {
             )}
 
             <form onSubmit={handleSubmit} className="mt-8 space-y-5">
-              <Field label="Modelo" hint="Ej: MacBook Air M2">
-                <input
-                  type="text"
-                  placeholder="MacBook Air M2"
-                  className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
-                  value={model}
-                  onChange={(e) => {
-                    setModel(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  required
-                  aria-required="true"
-                  autoComplete="off"
-                />
+              <Field label="Modelo" hint="Escribe el nombre — detectamos el año automáticamente">
+                <div className="relative">
+                  <input
+                    type="text"
+                    placeholder="Ej: Apple MacBook Air (M3, 2024)"
+                    className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
+                    value={model}
+                    onChange={(e) => {
+                      setModel(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    required
+                    aria-required="true"
+                    autoComplete="off"
+                  />
 
-                {showSuggestions && suggestedModels.length > 0 && (
-                  <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-neutral-900 shadow-2xl">
-                    {suggestedModels.map((m, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className="w-full px-4 py-2 text-left text-xs text-white hover:bg-emerald-500/20 transition-colors border-b border-white/5 last:border-0"
-                        onClick={() => {
-                          setModel(m);
-                          setShowSuggestions(false);
-                        }}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  {showSuggestions && suggestedModels.length > 0 && (
+                    <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-white/10 bg-neutral-900 shadow-2xl">
+                      {suggestedModels.map((m, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className="w-full px-4 py-2.5 text-left hover:bg-cyan-500/20 transition-colors border-b border-white/5 last:border-0 flex items-center justify-between gap-2"
+                          onClick={() => {
+                            setModel(m.name);
+                            if (m.year) setYear(String(m.year));
+                            if (m.materials) setMaterials(m.materials);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <span className="text-xs text-white">{m.name}</span>
+                          {m.year && <span className="text-[10px] text-cyan-400/80 font-mono shrink-0 bg-cyan-500/10 px-1.5 py-0.5 rounded">{m.year}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </Field>
 
-              <Field label="Año de fabricación" hint="Ej: 2022">
+              <Field label="Año de fabricación" hint={year ? "✓ Detectado automáticamente" : "Se completa al elegir el modelo"}>
                 <input
                   type="number"
-                  placeholder="2022"
-                  className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
+                  placeholder="Se detecta automáticamente"
+                  className={`w-full rounded-xl bg-neutral-950/40 border px-4 py-3 text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40 ${year ? 'border-cyan-400/50 bg-cyan-500/5' : 'border-white/10'
+                    }`}
                   value={year}
                   onChange={(e) => setYear(e.target.value)}
                   min="1990"
@@ -280,6 +294,8 @@ export default function UploadLaptop() {
                     modelName={model || 'Laptop'}
                     isPro={aiConfig.isPro}
                     isUltra={aiConfig.isUltra}
+                    form={aiConfig.form}
+                    screenGlow={aiConfig.screenGlow}
                   />
                 </ThreeScene>
               </div>

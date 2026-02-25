@@ -1,13 +1,14 @@
 // Componente de resultados finales con visualización de impacto ambiental, recomendaciones y generación de certificados
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useNavigate, useParams, useLocation } from "react-router-dom";
-import { 
+import {
   FaChartBar, FaLeaf, FaTint, FaRecycle, FaBullseye, FaDownload, FaMapMarkerAlt,
   FaCheck, FaBullhorn, FaChartLine, FaPrint, FaLightbulb, FaCheckCircle, FaTimes,
-  FaGraduationCap, FaCalendarAlt, FaMapMarkedAlt, FaInfoCircle, FaArrowLeft, 
-  FaClock, FaUser, FaLaptop
+  FaGraduationCap, FaCalendarAlt, FaMapMarkedAlt, FaInfoCircle, FaArrowLeft,
+  FaClock, FaUser, FaLaptop, FaQrcode, FaSpinner
 } from "react-icons/fa";
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
+import { QRCodeSVG } from "qrcode.react";
 import api from "../../services/api";
 import jsPDF from "jspdf";
 import html2canvas from "html2canvas";
@@ -108,9 +109,15 @@ export default function Results() {
   // Estado para certificado de compromiso
   const [certData, setCertData] = useState(null);
 
+  // Estado para entrega QR
+  const [deliveryToken, setDeliveryToken] = useState(null);
+  const [deliveryStatus, setDeliveryStatus] = useState(null); // 'pending' | 'verified'
+  const [creatingDelivery, setCreatingDelivery] = useState(false);
+
   // Referencias para scroll y captura de certificado
   const certScrollRef = useRef(null);
   const certCaptureRef = useRef(null);
+  const qrScrollRef = useRef(null);
 
   const navigate = useNavigate();
   const { id } = useParams();
@@ -197,8 +204,8 @@ export default function Results() {
     if (!device) return;
 
     const recommendations = getRecommendations();
-    const A4_W = 794; 
-    const A4_H = 1123; 
+    const A4_W = 794;
+    const A4_H = 1123;
 
     // Crear contenedor oculto para renderizado del PDF
     const pdfContent = document.createElement("div");
@@ -279,13 +286,12 @@ export default function Results() {
 
       <div style="margin-top:14px; border:1px solid #e5e7eb; border-radius:16px; padding:16px;">
         <div style="font-size:13px; font-weight:900; color:#064e3b; margin-bottom:10px;">Recomendaciones</div>
-        ${
-          recommendations.length
-            ? `<ul style="margin:0; padding-left:18px; font-size:13px; color:#0f172a; line-height:1.8;">
+        ${recommendations.length
+        ? `<ul style="margin:0; padding-left:18px; font-size:13px; color:#0f172a; line-height:1.8;">
                 ${recommendations.map((r) => `<li style="margin:6px 0;">${r}</li>`).join("")}
               </ul>`
-            : `<div style="font-size:13px; color:#64748b;">No hay recomendaciones disponibles para este escenario.</div>`
-        }
+        : `<div style="font-size:13px; color:#64748b;">No hay recomendaciones disponibles para este escenario.</div>`
+      }
       </div>
 
       <div style="margin-top:18px; text-align:center; font-size:12px; color:#64748b;">
@@ -336,11 +342,70 @@ export default function Results() {
     }
   };
 
-  //Genera certificado de compromiso de entrega
-    
-  const handleConfirmCommitment = () => {
-    if (!device) return;
+  // Genera entrega con QR y consulta estado
+  const handleConfirmCommitment = async () => {
+    if (!device || creatingDelivery) return;
+    setCreatingDelivery(true);
 
+    try {
+      const res = await api.post('/deliveries', { deviceId: device.id });
+      setDeliveryToken(res.data.token);
+      setDeliveryStatus('pending');
+
+      // Scroll al QR
+      setTimeout(() => {
+        qrScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 300);
+    } catch (err) {
+      console.error("Error al crear entrega:", err);
+      alert("Error al generar el código QR. Intenta nuevamente.");
+    } finally {
+      setCreatingDelivery(false);
+    }
+  };
+
+  // Verificar estado de entrega existente al cargar
+  useEffect(() => {
+    if (!device) return;
+    const checkDelivery = async () => {
+      try {
+        const res = await api.get(`/deliveries/device/${device.id}`);
+        if (res.data) {
+          setDeliveryToken(res.data.token);
+          setDeliveryStatus(res.data.status);
+          if (res.data.status === 'verified') {
+            // Generar datos del certificado oficial
+            generateOfficialCert();
+          }
+        }
+      } catch (err) {
+        // No hay entrega, está bien
+      }
+    };
+    checkDelivery();
+  }, [device]);
+
+  // Polling para verificar estado de entrega (cada 10s cuando está pendiente)
+  useEffect(() => {
+    if (deliveryStatus !== 'pending' || !device) return;
+    const interval = setInterval(async () => {
+      try {
+        const res = await api.get(`/deliveries/device/${device.id}`);
+        if (res.data?.status === 'verified') {
+          setDeliveryStatus('verified');
+          generateOfficialCert();
+          clearInterval(interval);
+        }
+      } catch (err) {
+        // silencioso
+      }
+    }, 10000);
+    return () => clearInterval(interval);
+  }, [deliveryStatus, device]);
+
+  // Genera el certificado oficial (solo cuando admin verifica)
+  const generateOfficialCert = useCallback(() => {
+    if (!device) return;
     const userName = getUserNameFromStorage();
     const now = new Date();
 
@@ -354,14 +419,13 @@ export default function Results() {
       ).padStart(2, "0")}-${Math.random().toString(16).slice(2, 8).toUpperCase()}`,
     });
 
-    // Scrolleo suave al certificado después de generarlo
     setTimeout(() => {
       certScrollRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
-    }, 200);
-  };
+    }, 300);
+  }, [device]);
 
   //Genera PDF del certificado de compromiso
-  
+
   const handleDownloadCertificatePDF = async () => {
     if (!certCaptureRef.current || !device) return;
 
@@ -543,13 +607,102 @@ export default function Results() {
                 </a>
 
                 <div className="mt-6">
-                  <ButtonPrimary onClick={handleConfirmCommitment}>
-                    <FaCheck className="text-base" /> Declarar mi intención de entregar
-                  </ButtonPrimary>
+                  {!deliveryToken ? (
+                    <ButtonPrimary onClick={handleConfirmCommitment} disabled={creatingDelivery}>
+                      {creatingDelivery ? (
+                        <><FaSpinner className="text-base animate-spin" /> Generando código QR...</>
+                      ) : (
+                        <><FaQrcode className="text-base" /> Generar código QR de entrega</>
+                      )}
+                    </ButtonPrimary>
+                  ) : (
+                    <div className="rounded-2xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-center">
+                      <p className="text-sm text-emerald-200 font-medium">
+                        <FaCheckCircle className="inline mr-1" /> Código QR generado — desplázate abajo
+                      </p>
+                    </div>
+                  )}
                 </div>
 
-                {certData && (
+                {/* === SECCIÓN QR === */}
+                {deliveryToken && (
+                  <div ref={qrScrollRef} className="mt-6 rounded-2xl border border-white/10 bg-white/[0.04] p-6">
+                    <h4 className="text-lg font-semibold mb-4 flex items-center gap-2">
+                      <FaQrcode className="text-emerald-300" /> Tu código QR de entrega
+                    </h4>
+
+                    {/* Estado */}
+                    <div className={`mb-4 rounded-xl border p-3 flex items-center gap-3 ${deliveryStatus === 'verified'
+                      ? 'border-emerald-400/30 bg-emerald-500/10'
+                      : 'border-amber-400/30 bg-amber-500/10'
+                      }`}>
+                      {deliveryStatus === 'verified' ? (
+                        <>
+                          <FaCheckCircle className="text-xl text-emerald-400 shrink-0" />
+                          <div>
+                            <p className="font-semibold text-emerald-200 text-sm">✅ Entrega verificada</p>
+                            <p className="text-xs text-white/60">El administrador ha confirmado la recepción de tu dispositivo.</p>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <FaClock className="text-xl text-amber-400 shrink-0 animate-pulse" />
+                          <div>
+                            <p className="font-semibold text-amber-200 text-sm">⏳ Pendiente de verificación</p>
+                            <p className="text-xs text-white/60">Presenta este QR en el Punto Verde UIDE para que el administrador confirme tu entrega.</p>
+                          </div>
+                        </>
+                      )}
+                    </div>
+
+                    {/* Código QR */}
+                    <div className="flex justify-center">
+                      <div className="bg-white rounded-2xl p-5">
+                        <QRCodeSVG
+                          value={`${window.location.origin}/admin/verify/${deliveryToken}`}
+                          size={220}
+                          level="H"
+                          includeMargin={true}
+                          bgColor="#ffffff"
+                          fgColor="#0f172a"
+                        />
+                      </div>
+                    </div>
+
+                    <p className="mt-4 text-center text-sm text-white/50">
+                      Presenta este código en el <strong className="text-white/70">Punto Verde UIDE – Campus Loja</strong>
+                    </p>
+
+                    {/* Link copiable */}
+                    <div className="mt-3 flex items-center justify-center gap-2">
+                      <input
+                        readOnly
+                        value={`${window.location.origin}/admin/verify/${deliveryToken}`}
+                        className="flex-1 max-w-md px-3 py-2 rounded-lg bg-black/30 border border-white/10 text-xs text-white/60 font-mono truncate text-center"
+                        onClick={(e) => e.target.select()}
+                      />
+                      <button
+                        onClick={() => {
+                          navigator.clipboard.writeText(`${window.location.origin}/admin/verify/${deliveryToken}`);
+                          alert('¡Link copiado al portapapeles!');
+                        }}
+                        className="px-3 py-2 rounded-lg bg-emerald-500/20 border border-emerald-400/30 text-emerald-300 text-xs font-semibold hover:bg-emerald-500/30 transition"
+                      >
+                        Copiar link
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* === CERTIFICADO OFICIAL (solo visible cuando admin verifica) === */}
+                {certData && deliveryStatus === 'verified' && (
                   <div ref={certScrollRef} className="mt-6">
+                    <div className="mb-4 rounded-xl border border-emerald-400/20 bg-emerald-500/10 p-3 text-center">
+                      <p className="text-sm text-emerald-200 font-semibold">
+                        <FaCheckCircle className="inline mr-1" /> Certificado oficial emitido
+                      </p>
+                    </div>
+
                     <div ref={certCaptureRef} className="bg-white rounded-3xl p-0 overflow-hidden">
                       <div className="relative mx-auto w-full bg-white overflow-hidden">
                         <div className="absolute inset-0 rounded-2xl border-[6px] border-emerald-600/20" />
@@ -592,12 +745,12 @@ export default function Results() {
                           <div className="mt-6 text-center">
                             <div className="mx-auto h-1 w-20 bg-gradient-to-r from-emerald-600 to-cyan-500 rounded-full" />
                             <h4 className="mt-4 text-2xl md:text-3xl font-extrabold tracking-wide text-slate-900">
-                              CERTIFICADO DE COMPROMISO RAEE
+                              CERTIFICADO OFICIAL RAEE
                             </h4>
                             <p className="mt-2 text-sm text-slate-600 max-w-3xl mx-auto leading-relaxed">
-                              Se otorga la presente constancia como declaración de{" "}
-                              <span className="font-semibold text-slate-900">intención de entrega</span> para
-                              disposición responsable de residuos electrónicos.
+                              Se certifica la recepción verificada del dispositivo para{" "}
+                              <span className="font-semibold text-slate-900">disposición responsable</span> de
+                              residuos electrónicos en el marco del programa RAEE.
                             </p>
                           </div>
 
@@ -660,7 +813,7 @@ export default function Results() {
                                     <FaLeaf className="text-2xl text-emerald-700" />
                                   </div>
                                   <div className="absolute -bottom-3 text-[10px] tracking-[0.18em] uppercase text-emerald-800 font-semibold">
-                                    validado
+                                    verificado
                                   </div>
                                 </div>
                               </div>
@@ -672,7 +825,7 @@ export default function Results() {
 
                     <div className="mt-5 flex flex-col sm:flex-row gap-3">
                       <ButtonPrimary onClick={handleDownloadCertificatePDF}>
-                        <FaDownload className="text-base" /> Descargar certificado (PDF)
+                        <FaDownload className="text-base" /> Descargar certificado oficial (PDF)
                       </ButtonPrimary>
 
                       <button

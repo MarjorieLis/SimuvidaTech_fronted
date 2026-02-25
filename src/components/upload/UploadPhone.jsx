@@ -5,7 +5,7 @@ import api from "../../services/api";
 import { useEffect, useMemo } from 'react';
 import ThreeScene from "../simulation/ThreeScene";
 import AccessiblePhone from "../simulation/AccessiblePhone";
-import { getAIModelConfig, getModelsByBrand } from "../../services/AIModelSelector";
+import { getAIModelConfig, getModelsByBrand, getModelYear } from "../../services/AIModelSelector";
 import { useCognitiveAssistant } from "../../hooks/useCognitiveAssistant";
 
 function Field({ label, hint, children }) {
@@ -37,6 +37,16 @@ export default function UploadPhone() {
 
   // Obtener sugerencias de modelos basadas en lo que el usuario escribe
   const suggestedModels = useMemo(() => getModelsByBrand(model, 'phone'), [model]);
+
+  // Auto-rellenar el año y materiales cuando se detecta un modelo conocido
+  useEffect(() => {
+    if (model.length > 4) {
+      const autoYear = getModelYear(model);
+      if (autoYear && !year) {
+        setYear(String(autoYear));
+      }
+    }
+  }, [model]);
 
   // Narracion de deteccion IA y Autocompletado (Accesibilidad)
   useEffect(() => {
@@ -164,49 +174,55 @@ export default function UploadPhone() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
-              <Field label="Modelo" hint="Ej: Samsung Galaxy A14">
-                <input
-                  type="text"
-                  className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3
+              <Field label="Modelo" hint="Escribe el nombre — detectamos el año automáticamente">
+                <div className="relative">
+                  <input
+                    type="text"
+                    className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3
                     text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
-                  placeholder="Samsung Galaxy A14"
-                  value={model}
-                  onChange={(e) => {
-                    setModel(e.target.value);
-                    setShowSuggestions(true);
-                  }}
-                  onFocus={() => setShowSuggestions(true)}
-                  onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
-                  required
-                  aria-required="true"
-                  autoComplete="off"
-                />
+                    placeholder="Ej: Apple iPhone 15 Pro"
+                    value={model}
+                    onChange={(e) => {
+                      setModel(e.target.value);
+                      setShowSuggestions(true);
+                    }}
+                    onFocus={() => setShowSuggestions(true)}
+                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
+                    required
+                    aria-required="true"
+                    autoComplete="off"
+                  />
 
-                {showSuggestions && suggestedModels.length > 0 && (
-                  <div className="absolute z-50 mt-1 max-h-60 w-full overflow-y-auto rounded-xl border border-white/10 bg-neutral-900 shadow-2xl">
-                    {suggestedModels.map((m, idx) => (
-                      <button
-                        key={idx}
-                        type="button"
-                        className="w-full px-4 py-2 text-left text-xs text-white hover:bg-emerald-500/20 transition-colors border-b border-white/5 last:border-0"
-                        onClick={() => {
-                          setModel(m);
-                          setShowSuggestions(false);
-                        }}
-                      >
-                        {m}
-                      </button>
-                    ))}
-                  </div>
-                )}
+                  {showSuggestions && suggestedModels.length > 0 && (
+                    <div className="absolute z-50 mt-1 max-h-64 w-full overflow-y-auto rounded-xl border border-white/10 bg-neutral-900 shadow-2xl">
+                      {suggestedModels.map((m, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          className="w-full px-4 py-2.5 text-left hover:bg-emerald-500/20 transition-colors border-b border-white/5 last:border-0 flex items-center justify-between gap-2"
+                          onClick={() => {
+                            setModel(m.name);
+                            if (m.year) setYear(String(m.year));
+                            if (m.materials) setMaterials(m.materials);
+                            setShowSuggestions(false);
+                          }}
+                        >
+                          <span className="text-xs text-white">{m.name}</span>
+                          {m.year && <span className="text-[10px] text-emerald-400/80 font-mono shrink-0 bg-emerald-500/10 px-1.5 py-0.5 rounded">{m.year}</span>}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </Field>
 
-              <Field label="Año de fabricación" hint="Ej: 2023">
+              <Field label="Año de fabricación" hint={year ? "✓ Detectado automáticamente" : "Se completa al elegir el modelo"}>
                 <input
                   type="number"
-                  className="w-full rounded-xl bg-neutral-950/40 border border-white/10 px-4 py-3
-                    text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40"
-                  placeholder="2023"
+                  className={`w-full rounded-xl bg-neutral-950/40 border px-4 py-3
+                    text-white placeholder:text-white/35 outline-none focus:ring-2 focus:ring-emerald-400/40
+                    ${year ? 'border-emerald-400/50 bg-emerald-500/5' : 'border-white/10'}`}
+                  placeholder="Se detecta automáticamente"
                   value={year}
                   onChange={(e) => setYear(e.target.value)}
                   min="1990"
@@ -287,6 +303,7 @@ export default function UploadPhone() {
                     isUltra={aiConfig.isUltra}
                     roughness={aiConfig.roughness}
                     metalness={aiConfig.metalness}
+                    form={aiConfig.form}
                   />
                 </ThreeScene>
               </div>
