@@ -74,14 +74,14 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchAdminStats = async () => {
       try {
-        // Carga concurrente de tres endpoints para optimizar tiempo
-        const [devicesRes, usersRes, decisionsRes] = await Promise.all([
+        // Carga concurrente — cada endpoint se maneja independientemente
+        const [devicesRes, usersRes, decisionsRes] = await Promise.allSettled([
           api.get("/devices/admin"),
           api.get("/users/stats"),
           api.get("/decisions/admin"),
         ]);
 
-        const devicesList = devicesRes.data || [];
+        const devicesList = devicesRes.status === 'fulfilled' ? (devicesRes.value.data || []) : [];
         const totalDevices = devicesList.length;
 
         // Conteo de dispositivos por tipo
@@ -110,12 +110,13 @@ export default function AdminDashboard() {
           .slice(0, 5)
           .map(([model, count]) => ({ name: model, value: count }));
 
-        const { decisionesUso = [], decisionesFinVida = [] } = decisionsRes.data || {};
+        const decisionsData = decisionsRes.status === 'fulfilled' ? (decisionsRes.value.data || {}) : {};
+        const { decisionesUso = [], decisionesFinVida = [] } = decisionsData;
 
         // Actualiza estado con todas las estadísticas procesadas
         setStats({
           totalDevices,
-          totalUsers: usersRes.data?.totalUsers || 0,
+          totalUsers: usersRes.status === 'fulfilled' ? (usersRes.value.data?.totalUsers || 0) : 0,
           phoneCount,
           laptopCount,
           topPhones,
